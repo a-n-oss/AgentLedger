@@ -1,0 +1,47 @@
+import { BadgeCheck, Boxes, Gauge, KeyRound, Receipt, ScrollText, Settings, ShieldAlert, Workflow } from "lucide-react";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+
+const links = [
+  { href: "/app", label: "Overview", icon: Gauge },
+  { href: "/app/projects", label: "Projects", icon: Boxes },
+  { href: "/app/agents", label: "Agents", icon: Workflow },
+  { href: "/app/runs", label: "Runs", icon: ScrollText },
+  { href: "/app/budgets", label: "Budgets", icon: ShieldAlert },
+  { href: "/app/alerts", label: "Alerts", icon: BadgeCheck },
+  { href: "/app/export", label: "Export", icon: Receipt },
+  { href: "/app/settings/billing", label: "Billing", icon: KeyRound },
+  { href: "/app/settings", label: "Settings", icon: Settings },
+];
+
+export function AppSidebar({ pathname }: { pathname: string }) {
+  return (
+    <aside className="flex h-full w-60 flex-col border-r border-[var(--al-line)] bg-[var(--al-panel)]/60 px-3 py-5">
+      <Link href="/" className="mb-6 px-3 font-[family-name:var(--font-display)] text-xl tracking-tight">
+        AgentLedger
+      </Link>
+      <nav className="flex flex-1 flex-col gap-1">
+        {links.map((link) => {
+          const active = pathname === link.href || (link.href !== "/app" && pathname.startsWith(link.href));
+          const Icon = link.icon;
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={cn(
+                "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
+                active
+                  ? "bg-[var(--al-ink)] text-[var(--al-paper)]"
+                  : "text-[var(--al-muted)] hover:bg-[var(--al-panel-2)] hover:text-[var(--al-ink)]",
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              {link.label}
+            </Link>
+          );
+        })}
+      </nav>
+      <p className="px-3 text-xs text-[var(--al-muted)]">Control plane for agent spend</p>
+    </aside>
+  );
+}
