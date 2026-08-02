@@ -39,7 +39,7 @@ export default function HomePage() {
               Self-host
             </Button>
           </Link>
-          <Link href="/app">
+          <Link href="/demo">
             <Button size="lg" variant="secondary">
               Try demo
             </Button>

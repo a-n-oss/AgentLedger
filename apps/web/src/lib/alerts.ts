@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { Resend } from "resend";
 import { alertChannels } from "@agentledger/db";
-import { getDb, isDemoMode } from "./db";
+import { getDb } from "./db";
 import { inngest } from "./inngest";
 
 export async function dispatchBudgetAlerts(params: {
@@ -12,7 +12,7 @@ export async function dispatchBudgetAlerts(params: {
   amountUsd: number;
   hard: boolean;
 }) {
-  if (process.env.INNGEST_EVENT_KEY && !isDemoMode()) {
+  if (process.env.INNGEST_EVENT_KEY) {
     await inngest.send({
       name: "budget/alert",
       data: params,

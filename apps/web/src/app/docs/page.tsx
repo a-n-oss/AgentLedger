@@ -51,10 +51,11 @@ export default function DocsPage() {
             Self-host or run an invite-only hosted control plane with{" "}
             <strong>BYOK</strong> (bring your own provider keys). The public Railway site is docs
             plus a{" "}
-            <Link href="/app" className="font-medium text-[var(--al-accent)] underline">
+            <Link href="/demo" className="font-medium text-[var(--al-accent)] underline">
               seeded demo
             </Link>{" "}
-            — not a production proxy. Stripe billing tiers are deferred while on BYOK.
+            at <code>/demo</code>. Live console is <code>/app</code> (Clerk). Stripe tiers are
+            deferred while on BYOK.
           </p>
 
           <h2 className="mt-12 text-2xl font-semibold">1. Quick start (self-host)</h2>

@@ -12,10 +12,11 @@
 
 - This repo is AgentLedger — an AI agent ops and spend-control product (proxy, budgets, run ledger, dashboard); production path is self-host or private hosted with invite-only Clerk + BYOK
 - Monorepo layout: `apps/web` plus `packages/{db,shared,sdk}`, managed with pnpm
-- Stack centers on Next.js, Postgres (Docker Compose on port 5433 locally), Clerk or `AGENTLEDGER_DEMO_MODE`, and optional/deferred Stripe
+- Stack centers on Next.js, Postgres (Docker Compose on port 5433 locally), Clerk for `/app`, and optional/deferred Stripe
 - OpenAI-compatible proxy lives at `/api/v1` with agent/team attribution, cost logging, and hard budgets that return HTTP 402 when exceeded
-- Provider keys are per-project BYOK (AES-GCM via `AGENTLEDGER_SECRETS_KEY`) with optional env fallback (`OPENAI_API_KEY`); public Railway demo has neither
-- Local explore works after `pnpm db:migrate` and `pnpm db:seed` without provider keys
-- Railway deployment is public docs + seeded demo only (`AGENTLEDGER_DEMO_MODE=true`); see `DEPLOY.md`
+- Provider keys are per-project BYOK (AES-GCM via `AGENTLEDGER_SECRETS_KEY`) with optional env fallback (`OPENAI_API_KEY`); public Railway has neither
+- `AGENTLEDGER_DEMO_MODE=true` enables seeded `/demo` only; `/app` is always the live Clerk console
+- Local explore: `pnpm db:migrate` + `pnpm db:seed`, open `/demo` without provider keys
+- Railway is public docs + `/demo`; see `DEPLOY.md`
 - GitHub remote is `a-n-oss/AgentLedger` with GitHub Actions CI for install, typecheck, test, build, migrate, seed, and lint
-- Custom Clerk auth lives at `/sign-in` and `/sign-up`; `NEXT_PUBLIC_CLERK_INVITE_ONLY=true` gates sign-up UI; demo mode skips Clerk
+- Custom Clerk auth lives at `/sign-in` and `/sign-up`; `NEXT_PUBLIC_CLERK_INVITE_ONLY=true` gates sign-up UI

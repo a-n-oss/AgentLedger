@@ -1,9 +1,9 @@
-import { requireAppSession } from "@/lib/auth-session";
-import { isDemoMode } from "@/lib/db";
+import { isDemoSession, requireAppSession } from "@/lib/auth-session";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function SettingsPage() {
   const session = await requireAppSession();
+  const demo = isDemoSession(session);
   return (
     <div className="space-y-6">
       <div>
@@ -17,7 +17,7 @@ export default async function SettingsPage() {
           <div>Name: {session.orgName}</div>
           <div>Role: {session.role}</div>
           <div>Plan: {session.plan.name}</div>
-          <div>Demo mode: {isDemoMode() ? "on" : "off"}</div>
+          <div>Surface: {demo ? "Seeded demo (/demo)" : "Live app (/app)"}</div>
           <div className="text-[var(--al-muted)]">
             Privacy default: metadata + tokens only. Enable payload retention per project on Team.
           </div>

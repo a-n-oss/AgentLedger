@@ -30,7 +30,7 @@ export function SiteHeader({
           <Link href="/docs" className="text-[var(--al-muted)] hover:text-[var(--al-ink)]">
             Docs
           </Link>
-          <Link href="/app" className="text-[var(--al-muted)] hover:text-[var(--al-ink)]">
+          <Link href="/demo" className="text-[var(--al-muted)] hover:text-[var(--al-ink)]">
             Demo
           </Link>
           <ThemeToggle />

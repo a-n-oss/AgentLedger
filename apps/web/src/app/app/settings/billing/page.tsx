@@ -26,7 +26,7 @@ export default async function BillingPage({
       )}
       {params.demo && (
         <p className="rounded-md bg-sky-50 px-3 py-2 text-sm text-sky-800">
-          Demo mode: configure STRIPE_* env vars to enable live checkout.
+          Seeded demo: configure STRIPE_* env vars on a live /app install to enable checkout.
         </p>
       )}
       <Card>

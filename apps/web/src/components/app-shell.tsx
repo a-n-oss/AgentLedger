@@ -9,12 +9,15 @@ const clerkConfigured = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const isDemo = pathname === "/demo" || pathname.startsWith("/demo/");
+  const basePath = isDemo ? "/demo" : "/app";
+
   return (
     <div className="flex min-h-screen bg-[var(--al-paper)] text-[var(--al-ink)]">
-      <AppSidebar pathname={pathname} />
+      <AppSidebar pathname={pathname} basePath={basePath} isDemo={isDemo} />
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-center justify-end gap-3 border-b border-[var(--al-line)] px-6 py-3">
-          {clerkConfigured ? (
+          {clerkConfigured && !isDemo ? (
             <>
               <OrganizationSwitcher
                 hidePersonal

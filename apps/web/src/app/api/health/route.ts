@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const checks: Record<string, string> = {
     status: "ok",
-    demoMode: process.env.AGENTLEDGER_DEMO_MODE === "true" ? "true" : "false",
+    demoRoutes: process.env.AGENTLEDGER_DEMO_MODE === "true" ? "true" : "false",
     time: new Date().toISOString(),
   };
 

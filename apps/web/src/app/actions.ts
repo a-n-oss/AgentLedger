@@ -1,7 +1,6 @@
 "use server";
 
 import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
 import {
   agents,
   alertChannels,
@@ -20,7 +19,8 @@ import {
   UpsertProviderSecretSchema,
 } from "@agentledger/shared";
 import { generateApiKey } from "@/lib/api-keys";
-import { requireAppSession } from "@/lib/auth-session";
+import { isDemoSession, requireAppSession } from "@/lib/auth-session";
+import { revalidateConsole } from "@/lib/console";
 import { getDb } from "@/lib/db";
 import { sendBudgetAlertsInline } from "@/lib/alerts";
 import {
@@ -68,7 +68,7 @@ export async function createProjectAction(formData: FormData) {
     keyHash: key.hash,
   });
 
-  revalidatePath("/app/projects");
+  revalidateConsole("/projects");
   return { projectId: project.id, apiKey: key.raw };
 }
 
@@ -87,7 +87,7 @@ export async function rotateApiKeyAction(projectId: string) {
     keyPrefix: key.prefix,
     keyHash: key.hash,
   });
-  revalidatePath(`/app/projects/${projectId}`);
+  revalidateConsole(`/projects/${projectId}`);
   return { apiKey: key.raw };
 }
 
@@ -99,7 +99,7 @@ export async function revokeApiKeyAction(keyId: string, projectId: string) {
   });
   if (!project) throw new Error("Project not found");
   await db.update(apiKeys).set({ revokedAt: new Date() }).where(eq(apiKeys.id, keyId));
-  revalidatePath(`/app/projects/${projectId}`);
+  revalidateConsole(`/projects/${projectId}`);
 }
 
 export async function createBudgetAction(formData: FormData) {
@@ -140,7 +140,7 @@ export async function createBudgetAction(formData: FormData) {
     hard: parsed.data.hard,
     alertThresholds: parsed.data.alertThresholds,
   });
-  revalidatePath("/app/budgets");
+  revalidateConsole("/budgets");
 }
 
 export async function createAlertChannelAction(formData: FormData) {
@@ -161,7 +161,7 @@ export async function createAlertChannelAction(formData: FormData) {
     type: parsed.data.type,
     target: parsed.data.target,
   });
-  revalidatePath("/app/alerts");
+  revalidateConsole("/alerts");
 }
 
 export async function deleteAlertChannelAction(id: string) {
@@ -170,7 +170,7 @@ export async function deleteAlertChannelAction(id: string) {
   await db
     .delete(alertChannels)
     .where(and(eq(alertChannels.id, id), eq(alertChannels.organizationId, session.orgId)));
-  revalidatePath("/app/alerts");
+  revalidateConsole("/alerts");
 }
 
 export async function sendTestAlertAction() {
@@ -183,7 +183,7 @@ export async function sendTestAlertAction() {
     amountUsd: 100,
     hard: false,
   });
-  revalidatePath("/app/alerts");
+  revalidateConsole("/alerts");
   return { ok: true as const };
 }
 
@@ -231,7 +231,7 @@ export async function upsertProviderSecretAction(formData: FormData) {
     });
   }
 
-  revalidatePath(`/app/projects/${parsed.data.projectId}`);
+  revalidateConsole(`/projects/${parsed.data.projectId}`);
 }
 
 export async function deleteProviderSecretAction(projectId: string, provider: string) {
@@ -250,13 +250,13 @@ export async function deleteProviderSecretAction(projectId: string, provider: st
     .where(
       and(eq(providerSecrets.projectId, projectId), eq(providerSecrets.provider, provider)),
     );
-  revalidatePath(`/app/projects/${projectId}`);
+  revalidateConsole(`/projects/${projectId}`);
 }
 
 export async function createCheckoutSessionAction(plan: "pro" | "team") {
   const session = await requireAppSession();
-  if (process.env.AGENTLEDGER_DEMO_MODE === "true" && !process.env.STRIPE_SECRET_KEY) {
-    return { url: "/app/settings/billing?demo=1" };
+  if (isDemoSession(session) && !process.env.STRIPE_SECRET_KEY) {
+    return { url: `${session.surface === "demo" ? "/demo" : "/app"}/settings/billing?demo=1` };
   }
 
   const priceId = plan === "pro" ? process.env.STRIPE_PRICE_PRO : process.env.STRIPE_PRICE_TEAM;
@@ -305,8 +305,9 @@ export async function createCheckoutSessionAction(plan: "pro" | "team") {
 
 export async function createPortalSessionAction() {
   const session = await requireAppSession();
-  if (process.env.AGENTLEDGER_DEMO_MODE === "true" && !process.env.STRIPE_SECRET_KEY) {
-    return { url: "/app/settings/billing?demo=1" };
+  const billingBase = session.surface === "demo" ? "/demo" : "/app";
+  if (isDemoSession(session) && !process.env.STRIPE_SECRET_KEY) {
+    return { url: `${billingBase}/settings/billing?demo=1` };
   }
   const db = getDb();
   const organization = await db.query.organizations.findFirst({
@@ -316,7 +317,7 @@ export async function createPortalSessionAction() {
   const stripe = getStripe();
   const portal = await stripe.billingPortal.sessions.create({
     customer: organization.stripeCustomerId,
-    return_url: appUrl("/app/settings/billing"),
+    return_url: appUrl(`${billingBase}/settings/billing`),
   });
   return { url: portal.url };
 }

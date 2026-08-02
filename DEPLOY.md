@@ -4,8 +4,8 @@ AgentLedger is designed to run as **your** control plane. Use **BYOK** (encrypte
 
 | Path | Purpose |
 |---|---|
-| **A) Self-host / private hosted** | Production: Postgres + invite-only Clerk + BYOK (or env fallback) |
-| **B) Public Railway demo** | Docs + demo UI — no provider secrets |
+| **A) Self-host / private hosted** | Production: Postgres + invite-only Clerk + BYOK (or env fallback); `/app` |
+| **B) Public Railway** | Docs + seeded UI at `/demo` only — no provider secrets |
 
 Stripe subscription tiers are deferred while BYOK is the primary model.
 
@@ -26,7 +26,7 @@ Or any managed Postgres (Neon, RDS, Railway Postgres for a private instance, etc
 cp apps/web/.env.example apps/web/.env.local
 ```
 
-Minimum local explore (demo mode):
+Local explore without Clerk (opens `/demo`, redirects `/app` → `/demo`):
 
 ```bash
 DATABASE_URL=postgres://postgres:postgres@localhost:5433/agentledger
@@ -34,10 +34,10 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 AGENTLEDGER_DEMO_MODE=true
 ```
 
-Private hosted / multi-user (invite-only + BYOK):
+Private hosted / multi-user (`/app` + invite-only + BYOK; optional `/demo`):
 
 ```bash
-AGENTLEDGER_DEMO_MODE=false
+AGENTLEDGER_DEMO_MODE=false   # or true if you still want a public /demo
 NEXT_PUBLIC_CLERK_INVITE_ONLY=true
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
 CLERK_SECRET_KEY=
@@ -95,14 +95,14 @@ Configs in [`railway.toml`](railway.toml). Required env:
 ```bash
 DATABASE_URL=<Railway Postgres>
 NEXT_PUBLIC_APP_URL=https://<your-railway-domain>
-AGENTLEDGER_DEMO_MODE=true
+AGENTLEDGER_DEMO_MODE=true   # enables /demo only — /app still requires Clerk if configured
 ```
 
 ```bash
 railway run pnpm db:seed
 ```
 
-**Do not** set `OPENAI_API_KEY`, `AGENTLEDGER_SECRETS_KEY`, or project BYOK on the public demo.
+Marketing “Try demo” links to `/demo`. **Do not** set `OPENAI_API_KEY`, `AGENTLEDGER_SECRETS_KEY`, or project BYOK on the public site.
 
 ---
 
@@ -116,7 +116,8 @@ Config: [`apps/web/vercel.json`](apps/web/vercel.json). Keep the LLM proxy on a 
 
 | Setting | Local explore | Private hosted | Public Railway |
 |---|---|---|---|
-| `AGENTLEDGER_DEMO_MODE` | `true` | `false` | `true` |
+| `AGENTLEDGER_DEMO_MODE` | `true` → `/demo` | usually `false` | `true` → `/demo` |
+| Live console | `/app` needs Clerk | `/app` + invite-only | `/app` if Clerk; else use `/demo` |
 | `NEXT_PUBLIC_CLERK_INVITE_ONLY` | — | `true` | — |
 | `AGENTLEDGER_SECRETS_KEY` | For BYOK UI | Required for BYOK | Leave unset |
 | Provider key | BYOK or env | BYOK preferred | Leave unset |
