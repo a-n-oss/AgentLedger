@@ -50,7 +50,7 @@ export default function HomePage() {
           trace debugger.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
-          <Link href="/app">
+          <Link href="/sign-up">
             <Button size="lg" variant="accent">
               Start free
             </Button>
