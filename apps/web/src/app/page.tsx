@@ -1,29 +1,12 @@
 import Link from "next/link";
+import { BrandLockup, BrandMark } from "@/components/brand/logo";
+import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function HomePage() {
   return (
     <div className="min-h-screen text-[var(--al-ink)]">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <div className="font-[family-name:var(--font-display)] text-2xl font-semibold tracking-tight">
-          AgentLedger
-        </div>
-        <nav className="flex items-center gap-3 text-sm sm:gap-4">
-          <Link href="/docs" className="text-[var(--al-muted)] hover:text-[var(--al-ink)]">
-            Docs
-          </Link>
-          <Link href="/#pricing" className="text-[var(--al-muted)] hover:text-[var(--al-ink)]">
-            Pricing
-          </Link>
-          <ThemeToggle />
-          <Link href="/app">
-            <Button size="sm" variant="accent">
-              Open app
-            </Button>
-          </Link>
-        </nav>
-      </header>
+      <SiteHeader variant="marketing" />
 
       <section className="relative mx-auto max-w-6xl overflow-hidden px-6 pb-20 pt-8 md:pt-12">
         <div
@@ -40,31 +23,32 @@ export default function HomePage() {
           }}
         />
         <p className="mb-4 inline-flex items-center rounded-full border border-[var(--al-line)] bg-[var(--al-panel)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--al-accent)]">
-          Agent control plane
+          Self-host first
         </p>
-        <h1 className="max-w-3xl font-[family-name:var(--font-display)] text-5xl font-semibold leading-[1.05] tracking-tight md:text-6xl">
-          AgentLedger
+        <h1 className="flex max-w-3xl items-center gap-4 font-[family-name:var(--font-display)] text-5xl font-semibold leading-[1.05] tracking-tight md:gap-5 md:text-6xl">
+          <BrandMark size={64} className="md:h-[72px] md:w-[72px]" />
+          <span>AgentLedger</span>
         </h1>
         <p className="mt-5 max-w-xl text-lg text-[var(--al-muted)]">
-          Hard budgets, chargeback, and an audit ledger for production AI agents — not another
-          trace debugger.
+          Hard budgets, chargeback, and an audit ledger for production AI agents — run it on your
+          own stack. This site is docs and a seeded demo, not your production proxy.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
-          <Link href="/app">
+          <Link href="/docs">
             <Button size="lg" variant="accent">
-              Start free
+              Self-host
             </Button>
           </Link>
-          <Link href="/docs">
+          <Link href="/demo">
             <Button size="lg" variant="secondary">
-              Proxy quickstart
+              Try demo
             </Button>
           </Link>
         </div>
         <pre className="al-code mt-12 max-w-2xl overflow-x-auto rounded-2xl p-5 text-sm shadow-[var(--al-shadow)]">
 {`const client = new OpenAI({
   apiKey: process.env.AGENTLEDGER_API_KEY,
-  baseURL: "https://your-host/api/v1",
+  baseURL: "http://localhost:3000/api/v1",
   defaultHeaders: { "x-al-agent": "support-triage", "x-al-team": "support" },
 });`}
         </pre>
@@ -96,9 +80,12 @@ export default function HomePage() {
       </section>
 
       <section id="pricing" className="mx-auto max-w-6xl px-6 pb-24">
-        <h2 className="font-[family-name:var(--font-display)] text-3xl font-semibold">Pricing</h2>
+        <h2 className="font-[family-name:var(--font-display)] text-3xl font-semibold">
+          Plans when you self-host
+        </h2>
         <p className="mt-2 text-[var(--al-muted)]">
-          Subscription-ready from day one. Upgrade when agents leave sandbox.
+          Entitlement tiers for your own install. This public site is a demo — point production
+          traffic at your host.
         </p>
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           {[
@@ -126,8 +113,9 @@ export default function HomePage() {
       </section>
 
       <footer className="border-t border-[var(--al-line)] px-6 py-8 text-sm text-[var(--al-muted)]">
-        <div className="mx-auto flex max-w-6xl flex-wrap gap-4">
-          <span>© {new Date().getFullYear()} AgentLedger</span>
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-4">
+          <BrandLockup markSize={20} className="text-sm text-[var(--al-muted)]" />
+          <span>© {new Date().getFullYear()}</span>
           <Link href="/privacy" className="hover:text-[var(--al-ink)]">
             Privacy
           </Link>

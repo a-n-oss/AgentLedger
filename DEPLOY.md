@@ -1,43 +1,44 @@
 # Deploy AgentLedger
 
-## Which platform for this test?
+AgentLedger is designed to run as **your** control plane. Use **BYOK** (encrypted per-project provider keys) on hosted/private installs so you never put customer OpenAI keys in env and redeploy. The Railway project in this repo is a **docs + seeded demo** only.
 
-| Option | Best for | Caveat |
-|---|---|---|
-| **Railway (Hobby) — recommended first** | Real E2E test of proxy + budgets + dashboard | One project: Postgres + web |
-| **Vercel + Railway/Neon Postgres** | Fast UI deploys, edge CDN | Serverless timeouts can cut long LLM streams; keep Postgres elsewhere |
+| Path | Purpose |
+|---|---|
+| **A) Self-host / private hosted** | Production: Postgres + invite-only Clerk + BYOK (or env fallback); `/app` |
+| **B) Public Railway** | Docs + seeded UI at `/demo` only — no provider secrets |
 
-**Recommendation:** start on **Railway** for this MVP test. The product is an LLM proxy — a long-lived Node server is a better fit than Vercel serverless for streaming/completions. Use Vercel later if you want a polished marketing front door.
+Stripe subscription tiers are deferred while BYOK is the primary model.
 
 ---
 
-## A) Railway (recommended)
+## A) Self-host / private hosted (recommended)
 
-### 1. Create project
-1. New project → **Deploy from GitHub** (this repo, branch `cursor/agentledger-mvp` or `main`).
-2. Add a **Postgres** plugin in the same project.
-3. Railway will inject `DATABASE_URL`.
+### 1. Database
+```bash
+docker compose up -d
+# DATABASE_URL=postgres://postgres:postgres@localhost:5433/agentledger
+```
 
-### 2. Service settings
-Configs in [`railway.toml`](railway.toml):
-- **Build:** `pnpm install && pnpm build`
-- **Pre-deploy:** `pnpm db:migrate`
-- **Start:** `pnpm start` (binds to Railway `PORT`)
-- **Health:** `GET /api/health`
+Or any managed Postgres (Neon, RDS, Railway Postgres for a private instance, etc.).
 
-Root directory: **repo root** (monorepo).
+### 2. Environment
+```bash
+cp apps/web/.env.example apps/web/.env.local
+```
 
-### 3. Environment variables
-
-Copy from [`apps/web/.env.example`](apps/web/.env.example). Minimum for a real closed test:
+Local explore without Clerk (opens `/demo`, redirects `/app` → `/demo`):
 
 ```bash
-# Required
-DATABASE_URL=<from Railway Postgres>
-NEXT_PUBLIC_APP_URL=https://<your-railway-domain>
-AGENTLEDGER_DEMO_MODE=false
+DATABASE_URL=postgres://postgres:postgres@localhost:5433/agentledger
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+AGENTLEDGER_DEMO_MODE=true
+```
 
-# Auth (required when demo is false)
+Private hosted / multi-user (`/app` + invite-only + BYOK; optional `/demo`):
+
+```bash
+AGENTLEDGER_DEMO_MODE=false   # or true if you still want a public /demo
+NEXT_PUBLIC_CLERK_INVITE_ONLY=true
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
 CLERK_SECRET_KEY=
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
@@ -45,81 +46,79 @@ NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/app
 NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/app
 
-# At least one provider for live proxy
+# Master key for AES-GCM BYOK (required to save keys in UI)
+# openssl rand -base64 32
+AGENTLEDGER_SECRETS_KEY=
+
+# Optional single-tenant fallback if a project has no BYOK secret
 OPENAI_API_KEY=
 
-# Billing (optional for first smoke; needed for checkout test)
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
-STRIPE_PRICE_PRO=
-STRIPE_PRICE_TEAM=
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+# Budget alert smoke (optional)
+RESEND_API_KEY=
+ALERT_FROM_EMAIL=alerts@yourdomain.com
 ```
 
-### 4. First deploy checklist
-1. Deploy web service.
-2. Confirm `https://<domain>/api/health` → `{"status":"ok",...}`.
-3. Sign up via Clerk → `/app`.
-4. Create project → copy API key.
-5. Call proxy with real OpenAI traffic.
-6. Create a tiny hard budget → confirm HTTP **402**.
-7. (Optional) Stripe webhook endpoint: `https://<domain>/api/stripe/webhook`.
+In [Clerk Dashboard](https://dashboard.clerk.com): disable public sign-ups / use invitations only.
 
-### 5. Optional seed (demo data on staging)
-Only if you want charts before real traffic:
+### 3. Install and run
+```bash
+pnpm install
+pnpm db:migrate
+pnpm db:seed          # optional charts + demo API key
+pnpm dev              # http://localhost:3000
+```
+
+Then: create a project → **Provider keys (BYOK)** → paste OpenAI key → use `al_live_…` with `/api/v1`.
+
+### 4. Smoke checks
+```bash
+curl -s http://localhost:3000/api/health
+
+# Live proxy (BYOK or OPENAI_API_KEY)
+curl -s http://localhost:3000/api/v1/chat/completions \
+  -H "authorization: Bearer al_live_…" \
+  -H "content-type: application/json" \
+  -H "x-al-agent: local-bot" \
+  -d '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"ping"}]}'
+```
+
+Email: open `/app/alerts` → **Send test alert**.
+
+See `/docs` for BYOK, invite-only, and alert details.
+
+---
+
+## B) Public demo (Railway)
+
+Configs in [`railway.toml`](railway.toml). Required env:
+
+```bash
+DATABASE_URL=<Railway Postgres>
+NEXT_PUBLIC_APP_URL=https://<your-railway-domain>
+AGENTLEDGER_DEMO_MODE=true   # enables /demo only — /app still requires Clerk if configured
+```
 
 ```bash
 railway run pnpm db:seed
 ```
 
-Do **not** leave `AGENTLEDGER_DEMO_MODE=true` if you want real Clerk auth.
+Marketing “Try demo” links to `/demo`. **Do not** set `OPENAI_API_KEY`, `AGENTLEDGER_SECRETS_KEY`, or project BYOK on the public site.
 
 ---
 
-## B) Vercel (optional / later)
+## C) Vercel (optional marketing only)
 
-Config: [`apps/web/vercel.json`](apps/web/vercel.json).
-
-1. Import repo in Vercel → **Root Directory = `apps/web`**.
-2. Install/build commands come from `vercel.json` (run from monorepo root via `cd ../..`).
-3. Add env vars (same list as above).
-4. Attach an external Postgres (`DATABASE_URL` from Railway or Neon).
-5. Run migrations separately (Vercel does not use `railway.toml` preDeploy):
-   - local: `DATABASE_URL=... pnpm db:migrate`, or
-   - CI job on deploy.
-
-**Vercel note:** Hobby/serverless function limits can interrupt long streaming LLM responses. Fine for dashboard + short calls; weak for production proxy load.
+Config: [`apps/web/vercel.json`](apps/web/vercel.json). Keep the LLM proxy on a long-lived host.
 
 ---
 
-## Production vs staging flags
+## Flag cheat sheet
 
-| Setting | Staging closed test | Public prod later |
-|---|---|---|
-| `AGENTLEDGER_DEMO_MODE` | `false` (or `true` only for no-Clerk UI peek) | `false` |
-| Clerk | Required for real auth test | Required |
-| Provider key | Required for proxy test | Required |
-| Stripe | Optional first day | Required to sell |
-| Rate limits | In-memory (ok for solo test) | Move to Redis/Upstash |
-
----
-
-## Smoke test commands (after deploy)
-
-```bash
-# Health
-curl -s https://<domain>/api/health
-
-# Open a run (no provider key needed)
-curl -s https://<domain>/api/v1/runs \
-  -H "authorization: Bearer al_live_…" \
-  -H "content-type: application/json" \
-  -d '{"agent":"staging-bot","team":"platform"}'
-
-# Live proxy (needs OPENAI_API_KEY on server)
-curl -s https://<domain>/api/v1/chat/completions \
-  -H "authorization: Bearer al_live_…" \
-  -H "content-type: application/json" \
-  -H "x-al-agent: staging-bot" \
-  -d '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"ping"}]}'
-```
+| Setting | Local explore | Private hosted | Public Railway |
+|---|---|---|---|
+| `AGENTLEDGER_DEMO_MODE` | `true` → `/demo` | usually `false` | `true` → `/demo` |
+| Live console | `/app` needs Clerk | `/app` + invite-only | `/app` if Clerk; else use `/demo` |
+| `NEXT_PUBLIC_CLERK_INVITE_ONLY` | — | `true` | — |
+| `AGENTLEDGER_SECRETS_KEY` | For BYOK UI | Required for BYOK | Leave unset |
+| Provider key | BYOK or env | BYOK preferred | Leave unset |
+| Stripe | Deferred | Deferred | Leave unset |

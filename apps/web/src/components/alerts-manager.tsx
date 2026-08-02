@@ -1,7 +1,11 @@
 "use client";
 
-import { useTransition } from "react";
-import { createAlertChannelAction, deleteAlertChannelAction } from "@/app/actions";
+import { useState, useTransition } from "react";
+import {
+  createAlertChannelAction,
+  deleteAlertChannelAction,
+  sendTestAlertAction,
+} from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 
@@ -11,6 +15,8 @@ export function AlertsManager({
   channels: { id: string; type: "slack" | "email"; target: string; enabled: boolean }[];
 }) {
   const [pending, startTransition] = useTransition();
+  const [testNote, setTestNote] = useState<string | null>(null);
+
   return (
     <div className="space-y-4">
       <form
@@ -26,19 +32,54 @@ export function AlertsManager({
         </div>
         <div className="md:col-span-2">
           <Label>Target</Label>
-          <Input name="target" required className="mt-1" placeholder="ops@company.com or https://hooks.slack.com/..." />
+          <Input
+            name="target"
+            required
+            className="mt-1"
+            placeholder="ops@company.com or https://hooks.slack.com/..."
+          />
         </div>
         <Button type="submit" variant="accent" disabled={pending}>
           Add channel
         </Button>
       </form>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={pending || channels.length === 0}
+          onClick={() =>
+            startTransition(async () => {
+              setTestNote(null);
+              try {
+                await sendTestAlertAction();
+                setTestNote("Test alert dispatched to configured channels.");
+              } catch (err) {
+                setTestNote(err instanceof Error ? err.message : "Test alert failed");
+              }
+            })
+          }
+        >
+          Send test alert
+        </Button>
+        {testNote ? <p className="text-sm text-[var(--al-muted)]">{testNote}</p> : null}
+      </div>
+
       <ul className="space-y-2">
         {channels.map((c) => (
-          <li key={c.id} className="flex items-center justify-between rounded-md border border-[var(--al-line)] px-3 py-2 text-sm">
+          <li
+            key={c.id}
+            className="flex items-center justify-between rounded-md border border-[var(--al-line)] px-3 py-2 text-sm"
+          >
             <span>
               <span className="uppercase text-[var(--al-muted)]">{c.type}</span> · {c.target}
             </span>
-            <Button size="sm" variant="danger" onClick={() => startTransition(() => deleteAlertChannelAction(c.id))}>
+            <Button
+              size="sm"
+              variant="danger"
+              onClick={() => startTransition(() => deleteAlertChannelAction(c.id))}
+            >
               Remove
             </Button>
           </li>

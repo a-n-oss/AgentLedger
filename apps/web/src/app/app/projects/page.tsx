@@ -2,9 +2,11 @@ import Link from "next/link";
 import { listProjects } from "@/app/actions";
 import { CreateProjectForm } from "@/components/create-project-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getConsoleBasePath } from "@/lib/console";
 
 export default async function ProjectsPage() {
   const projects = await listProjects();
+  const basePath = await getConsoleBasePath();
   return (
     <div className="space-y-6">
       <div>
@@ -17,7 +19,7 @@ export default async function ProjectsPage() {
           <Card key={project.id}>
             <CardHeader className="flex-row items-center justify-between">
               <CardTitle>
-                <Link href={`/app/projects/${project.id}`} className="hover:underline">
+                <Link href={`${basePath}/projects/${project.id}`} className="hover:underline">
                   {project.name}
                 </Link>
               </CardTitle>

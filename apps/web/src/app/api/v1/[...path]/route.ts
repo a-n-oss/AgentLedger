@@ -84,7 +84,7 @@ async function handleProxy(req: Request, path: string[]) {
   let upstreamHeaders: HeadersInit;
   try {
     upstreamHeaders = {
-      ...providerAuthHeaders(provider),
+      ...(await providerAuthHeaders(provider, auth.projectId)),
       "content-type": "application/json",
       accept: req.headers.get("accept") ?? "application/json",
     };

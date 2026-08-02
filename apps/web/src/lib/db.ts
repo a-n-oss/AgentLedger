@@ -15,6 +15,7 @@ export function getDb(): Db {
   return global.__agentledgerDb;
 }
 
+/** When true, the seeded /demo console is available. /app is always live (Clerk). */
 export function isDemoMode() {
   return process.env.AGENTLEDGER_DEMO_MODE === "true";
 }

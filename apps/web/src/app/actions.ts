@@ -1,7 +1,6 @@
 "use server";
 
 import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
 import {
   agents,
   alertChannels,
@@ -10,12 +9,26 @@ import {
   events,
   organizations,
   projects,
+  providerSecrets,
   runs,
 } from "@agentledger/db";
-import { CreateAlertChannelSchema, CreateBudgetSchema, CreateProjectSchema } from "@agentledger/shared";
+import {
+  CreateAlertChannelSchema,
+  CreateBudgetSchema,
+  CreateProjectSchema,
+  UpsertProviderSecretSchema,
+} from "@agentledger/shared";
 import { generateApiKey } from "@/lib/api-keys";
-import { requireAppSession } from "@/lib/auth-session";
+import { isDemoSession, requireAppSession } from "@/lib/auth-session";
+import { revalidateConsole } from "@/lib/console";
 import { getDb } from "@/lib/db";
+import { sendBudgetAlertsInline } from "@/lib/alerts";
+import {
+  encryptSecret,
+  keyHint,
+  listProviderSecretHints,
+  secretsKeyConfigured,
+} from "@/lib/secrets";
 import { appUrl, getStripe } from "@/lib/stripe";
 
 export async function createProjectAction(formData: FormData) {
@@ -55,7 +68,7 @@ export async function createProjectAction(formData: FormData) {
     keyHash: key.hash,
   });
 
-  revalidatePath("/app/projects");
+  revalidateConsole("/projects");
   return { projectId: project.id, apiKey: key.raw };
 }
 
@@ -74,7 +87,7 @@ export async function rotateApiKeyAction(projectId: string) {
     keyPrefix: key.prefix,
     keyHash: key.hash,
   });
-  revalidatePath(`/app/projects/${projectId}`);
+  revalidateConsole(`/projects/${projectId}`);
   return { apiKey: key.raw };
 }
 
@@ -86,7 +99,7 @@ export async function revokeApiKeyAction(keyId: string, projectId: string) {
   });
   if (!project) throw new Error("Project not found");
   await db.update(apiKeys).set({ revokedAt: new Date() }).where(eq(apiKeys.id, keyId));
-  revalidatePath(`/app/projects/${projectId}`);
+  revalidateConsole(`/projects/${projectId}`);
 }
 
 export async function createBudgetAction(formData: FormData) {
@@ -127,7 +140,7 @@ export async function createBudgetAction(formData: FormData) {
     hard: parsed.data.hard,
     alertThresholds: parsed.data.alertThresholds,
   });
-  revalidatePath("/app/budgets");
+  revalidateConsole("/budgets");
 }
 
 export async function createAlertChannelAction(formData: FormData) {
@@ -138,9 +151,9 @@ export async function createAlertChannelAction(formData: FormData) {
   }
   const parsed = CreateAlertChannelSchema.safeParse({
     type,
-    target: formData.get("target"),
+    target: String(formData.get("target") ?? "").trim(),
   });
-  if (!parsed.success) throw new Error("Invalid alert channel");
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Invalid alert channel");
 
   const db = getDb();
   await db.insert(alertChannels).values({
@@ -148,7 +161,7 @@ export async function createAlertChannelAction(formData: FormData) {
     type: parsed.data.type,
     target: parsed.data.target,
   });
-  revalidatePath("/app/alerts");
+  revalidateConsole("/alerts");
 }
 
 export async function deleteAlertChannelAction(id: string) {
@@ -157,13 +170,93 @@ export async function deleteAlertChannelAction(id: string) {
   await db
     .delete(alertChannels)
     .where(and(eq(alertChannels.id, id), eq(alertChannels.organizationId, session.orgId)));
-  revalidatePath("/app/alerts");
+  revalidateConsole("/alerts");
+}
+
+export async function sendTestAlertAction() {
+  const session = await requireAppSession();
+  await sendBudgetAlertsInline({
+    organizationId: session.orgId,
+    budgetName: "Test alert",
+    threshold: 80,
+    spentUsd: 80,
+    amountUsd: 100,
+    hard: false,
+  });
+  revalidateConsole("/alerts");
+  return { ok: true as const };
+}
+
+export async function upsertProviderSecretAction(formData: FormData) {
+  const session = await requireAppSession();
+  if (!secretsKeyConfigured()) {
+    throw new Error(
+      "AGENTLEDGER_SECRETS_KEY is not configured. Generate with: openssl rand -base64 32",
+    );
+  }
+  const parsed = UpsertProviderSecretSchema.safeParse({
+    projectId: formData.get("projectId"),
+    provider: formData.get("provider"),
+    secret: formData.get("secret"),
+  });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Invalid provider key");
+
+  const db = getDb();
+  const project = await db.query.projects.findFirst({
+    where: and(eq(projects.id, parsed.data.projectId), eq(projects.organizationId, session.orgId)),
+  });
+  if (!project) throw new Error("Project not found");
+
+  const { ciphertext, iv } = encryptSecret(parsed.data.secret);
+  const hint = keyHint(parsed.data.secret);
+  const existing = await db.query.providerSecrets.findFirst({
+    where: and(
+      eq(providerSecrets.projectId, parsed.data.projectId),
+      eq(providerSecrets.provider, parsed.data.provider),
+    ),
+  });
+
+  if (existing) {
+    await db
+      .update(providerSecrets)
+      .set({ ciphertext, iv, keyHint: hint, updatedAt: new Date() })
+      .where(eq(providerSecrets.id, existing.id));
+  } else {
+    await db.insert(providerSecrets).values({
+      projectId: parsed.data.projectId,
+      provider: parsed.data.provider,
+      ciphertext,
+      iv,
+      keyHint: hint,
+    });
+  }
+
+  revalidateConsole(`/projects/${parsed.data.projectId}`);
+}
+
+export async function deleteProviderSecretAction(projectId: string, provider: string) {
+  const session = await requireAppSession();
+  if (provider !== "openai" && provider !== "anthropic" && provider !== "google") {
+    throw new Error("Invalid provider");
+  }
+  const db = getDb();
+  const project = await db.query.projects.findFirst({
+    where: and(eq(projects.id, projectId), eq(projects.organizationId, session.orgId)),
+  });
+  if (!project) throw new Error("Project not found");
+
+  await db
+    .delete(providerSecrets)
+    .where(
+      and(eq(providerSecrets.projectId, projectId), eq(providerSecrets.provider, provider)),
+    );
+  revalidateConsole(`/projects/${projectId}`);
 }
 
 export async function createCheckoutSessionAction(plan: "pro" | "team") {
   const session = await requireAppSession();
-  if (process.env.AGENTLEDGER_DEMO_MODE === "true" && !process.env.STRIPE_SECRET_KEY) {
-    return { url: "/app/settings/billing?demo=1" };
+  if (isDemoSession(session) && !process.env.STRIPE_SECRET_KEY) {
+    return { url: `${session.surface === "demo" ? "/demo" : "/app"}/settings/billing?demo=1` };
   }
 
   const priceId = plan === "pro" ? process.env.STRIPE_PRICE_PRO : process.env.STRIPE_PRICE_TEAM;
@@ -212,8 +305,9 @@ export async function createCheckoutSessionAction(plan: "pro" | "team") {
 
 export async function createPortalSessionAction() {
   const session = await requireAppSession();
-  if (process.env.AGENTLEDGER_DEMO_MODE === "true" && !process.env.STRIPE_SECRET_KEY) {
-    return { url: "/app/settings/billing?demo=1" };
+  const billingBase = session.surface === "demo" ? "/demo" : "/app";
+  if (isDemoSession(session) && !process.env.STRIPE_SECRET_KEY) {
+    return { url: `${billingBase}/settings/billing?demo=1` };
   }
   const db = getDb();
   const organization = await db.query.organizations.findFirst({
@@ -223,7 +317,7 @@ export async function createPortalSessionAction() {
   const stripe = getStripe();
   const portal = await stripe.billingPortal.sessions.create({
     customer: organization.stripeCustomerId,
-    return_url: appUrl("/app/settings/billing"),
+    return_url: appUrl(`${billingBase}/settings/billing`),
   });
   return { url: portal.url };
 }
@@ -337,7 +431,8 @@ export async function getProject(projectId: string) {
     where: eq(apiKeys.projectId, projectId),
     orderBy: [desc(apiKeys.createdAt)],
   });
-  return { project, keys };
+  const providerKeys = await listProviderSecretHints(projectId);
+  return { project, keys, providerKeys, secretsKeyConfigured: secretsKeyConfigured() };
 }
 
 export async function listAgents() {

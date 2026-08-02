@@ -1,10 +1,10 @@
 # AgentLedger
 
-**The control plane for AI agent spend and actions.**
+**The control plane for AI agent spend and actions — self-host first.**
 
 AgentLedger sits between your apps and LLM providers. It attributes every call to an agent/team, enforces hard spend caps, and keeps an audit ledger — without being another trace debugger (Langfuse) or router (Portkey).
 
-If you have **no OpenAI/Anthropic/Google keys**, you can still run the full dashboard with seeded demo data. Provider keys are only required for the live LLM **proxy**.
+Run it on your own Postgres + Node host. The public Railway site is **docs + a seeded demo** only — not a production proxy. If you have **no OpenAI/Anthropic/Google keys**, you can still explore the dashboard with seed data; provider keys are only required for the live LLM **proxy** on your host.
 
 ---
 
@@ -160,9 +160,9 @@ sequenceDiagram
   alt hard budget exceeded
     Proxy-->>App: 402
   end
-  Proxy->>Prov: Forward with server OPENAI_API_KEY etc.
+  Proxy->>Prov: Forward with project BYOK key (or env fallback)
   alt provider key missing
-    Proxy-->>App: 503 Provider not configured
+    Proxy-->>App: 503/400 Add a provider key in project settings
   end
   Prov-->>Proxy: Completion + usage tokens
   Proxy->>DB: Insert event + recordSpend
@@ -184,7 +184,7 @@ sequenceDiagram
 
 **Streaming:** SSE is passed through. Cost is logged as a provisional estimate (token usage is incomplete mid-stream).
 
-### Customer install (when you have a provider key on the server)
+### Customer install (when AgentLedger has a provider key)
 
 ```ts
 import OpenAI from "openai";
@@ -205,7 +205,7 @@ await openai.chat.completions.create({
 });
 ```
 
-The **OpenAI/Anthropic/Google keys live only on the AgentLedger server** (`OPENAI_API_KEY`, etc.). Customers never need those keys in their apps when using the proxy.
+Provider keys are **BYOK per project** (encrypted with `AGENTLEDGER_SECRETS_KEY`) or optional server env fallback (`OPENAI_API_KEY`, etc.). Agents only need the AgentLedger `al_live_…` key.
 
 ---
 
@@ -290,19 +290,21 @@ Spend is tracked in `budget_usages` per period window (UTC day or month).
 
 ---
 
-## Auth, orgs, and demo mode
+## Auth, orgs, and demo
 
 ```mermaid
 flowchart LR
-  Demo["AGENTLEDGER_DEMO_MODE=true"] --> DemoSession["Fixed demo owner session\norg_demo_agentledger"]
-  Clerk["Clerk configured"] --> Protect["/app requires sign-in"]
-  Protect --> Org["Clerk org or personal org"]
+  DemoFlag["AGENTLEDGER_DEMO_MODE=true"] --> DemoPath["/demo seeded console"]
+  DemoPath --> DemoSession["Fixed demo owner\norg_demo_agentledger"]
+  Clerk["Clerk configured"] --> AppPath["/app live console"]
+  AppPath --> Org["Clerk org or personal org"]
   DemoSession --> Dashboard
   Org --> Dashboard
   APIKey["Bearer al_live_…"] --> ProxyAndRuns["Proxy + Runs APIs"]
 ```
 
-- **Dashboard auth** = Clerk session **or** demo session.
+- **`/app`** = live console (Clerk required).
+- **`/demo`** = seeded explore UI when `AGENTLEDGER_DEMO_MODE=true` (no Clerk).
 - **Proxy/SDK auth** = project API key only (hashed at rest; raw key shown once).
 
 ---
@@ -337,12 +339,12 @@ Configure channels under **App → Alerts**.
 
 You do **not** need `OPENAI_API_KEY` to understand or demo the product UI.
 
-### What works out of the box (demo mode + seed)
+### What works out of the box (`/demo` + seed)
 
 | Feature | Works? | Notes |
 |---|---|---|
 | Landing, docs, legal pages | Yes | Static |
-| `/app` overview charts | Yes | Seeded spend series |
+| `/demo` overview charts | Yes | Seeded spend series |
 | Projects / API keys | Yes | Create, rotate, revoke |
 | Agents list | Yes | From seed + headers |
 | Runs explorer | Yes | Seed includes a completed run |
@@ -352,11 +354,12 @@ You do **not** need `OPENAI_API_KEY` to understand or demo the product UI.
 | Run SDK ingest | Yes | `openRun` / `span` / `endRun` with demo API key |
 | Live LLM proxy | **No** | Returns **503** until a provider key is set |
 | Real Stripe checkout | **No** | Shows demo billing notice |
+| `/app` without Clerk | Redirects | To `/demo` when demo routes enabled |
 
 ### Walkthrough (no provider keys)
 
 1. Start Postgres + migrate + seed (see Quick start).
-2. Open http://localhost:3000/app — seeded KPIs and charts.
+2. Open http://localhost:3000/demo — seeded KPIs and charts.
 3. Open **Projects** → open the seeded project → copy install snippet (use the API key printed by `pnpm db:seed`).
 4. Open **Agents** / **Runs** / **Budgets** to see seeded entities.
 5. Optionally hit the SDK (still no provider key needed):
@@ -375,7 +378,7 @@ curl -s http://localhost:3000/api/v1/runs \
 
 ### What a provider key unlocks
 
-Set `OPENAI_API_KEY=` (or Anthropic/Google) in `apps/web/.env.local`, restart `pnpm dev`, then:
+Paste an OpenAI key under the project’s **Provider keys (BYOK)** (needs `AGENTLEDGER_SECRETS_KEY`), or set `OPENAI_API_KEY=` as a self-host fallback, then:
 
 ```bash
 curl -s http://localhost:3000/api/v1/chat/completions \
@@ -392,9 +395,9 @@ You’ll see a real completion, `x-al-cost-usd` response header, and a new event
 
 ## Deploy
 
-For a closed real test, prefer **Railway** (web + Postgres). Vercel is fine later for the UI, but serverless timeouts are a poor fit for the LLM proxy.
+**Self-host / private hosted** with invite-only Clerk + BYOK is the production path (`/app`). The Railway deployment is **docs + `/demo`** (`AGENTLEDGER_DEMO_MODE=true`, no provider secrets). Stripe tiers are deferred while BYOK-first.
 
-See **[DEPLOY.md](DEPLOY.md)** for platform choice, env vars, and smoke checks. Configs: [`railway.toml`](railway.toml), [`apps/web/vercel.json`](apps/web/vercel.json).
+See **[DEPLOY.md](DEPLOY.md)** and `/docs` for BYOK, invite-only, and smoke checks. Configs: [`railway.toml`](railway.toml) (demo), [`apps/web/vercel.json`](apps/web/vercel.json) (optional marketing).
 
 ## Quick start
 
@@ -406,7 +409,7 @@ docker compose up -d
 cp apps/web/.env.example apps/web/.env.local
 # Defaults already use:
 #   DATABASE_URL=postgres://postgres:postgres@localhost:5433/agentledger
-#   AGENTLEDGER_DEMO_MODE=true
+#   AGENTLEDGER_DEMO_MODE=true   # enables /demo
 
 # 3. Install + schema + demo data
 pnpm install
@@ -421,7 +424,8 @@ pnpm dev
 Open:
 
 - Marketing: http://localhost:3000  
-- App: http://localhost:3000/app  
+- Demo: http://localhost:3000/demo  
+- Live app (Clerk): http://localhost:3000/app  
 - Docs: http://localhost:3000/docs  
 - Health: http://localhost:3000/api/health  
 
@@ -432,15 +436,17 @@ Open:
 | Variable | Required? | Purpose |
 |---|---|---|
 | `DATABASE_URL` | Yes | Postgres connection |
-| `AGENTLEDGER_DEMO_MODE` | Recommended locally | `true` skips Clerk; uses demo org |
+| `AGENTLEDGER_DEMO_MODE` | Recommended locally | `true` enables seeded `/demo` (not `/app`) |
 | `SEED_CLERK_ORG_ID` | Optional | Demo/seed org id (default `org_demo_agentledger`) |
 | `NEXT_PUBLIC_APP_URL` | Yes for links/Stripe | e.g. `http://localhost:3000` |
-| `OPENAI_API_KEY` | Only for proxy | Upstream OpenAI |
-| `ANTHROPIC_API_KEY` | Only for proxy | Upstream Anthropic |
-| `GOOGLE_API_KEY` | Only for proxy | Upstream Google |
+| `AGENTLEDGER_SECRETS_KEY` | For BYOK UI | `openssl rand -base64 32` — encrypts project provider keys |
+| `OPENAI_API_KEY` | Optional fallback | Upstream OpenAI if no project BYOK |
+| `ANTHROPIC_API_KEY` | Optional fallback | Upstream Anthropic |
+| `GOOGLE_API_KEY` | Optional fallback | Upstream Google |
 | Clerk keys | Only if demo off | Real multi-user auth |
-| Stripe keys | Only for live billing | Checkout / portal / webhooks |
-| `RESEND_API_KEY` | Optional | Email budget alerts |
+| `NEXT_PUBLIC_CLERK_INVITE_ONLY` | Hosted | Hides public sign-up UI |
+| Stripe keys | Deferred | Checkout / portal / webhooks |
+| `RESEND_API_KEY` | Optional | Email budget alerts (+ test send on `/app/alerts`) |
 | `INNGEST_*` | Optional | Async alert delivery |
 
 See [`apps/web/.env.example`](apps/web/.env.example).
@@ -491,9 +497,10 @@ docker-compose.yml        Local Postgres (:5433)
 |---|---|
 | `/` | Product landing + pricing |
 | `/docs` | Proxy + SDK quickstart |
-| `/app` | 30-day spend KPIs + charts |
+| `/demo` | Seeded explore console (when `AGENTLEDGER_DEMO_MODE=true`) |
+| `/app` | Live console (Clerk) — same UI as `/demo` |
 | `/app/projects` | Projects + create form |
-| `/app/projects/[id]` | API keys + install snippet |
+| `/app/projects/[id]` | API keys + provider keys + install snippet |
 | `/app/agents` | Spend by agent |
 | `/app/runs` | Multi-step run list |
 | `/app/budgets` | Hard/soft budget config |
