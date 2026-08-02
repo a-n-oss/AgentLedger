@@ -51,7 +51,34 @@ export const CreateProjectSchema = z.object({
   retainPayloads: z.boolean().optional(),
 });
 
-export const CreateAlertChannelSchema = z.object({
-  type: z.enum(["slack", "email"]),
-  target: z.string().min(1).max(512),
+export const CreateAlertChannelSchema = z
+  .object({
+    type: z.enum(["slack", "email"]),
+    target: z.string().min(1).max(512),
+  })
+  .superRefine((val, ctx) => {
+    if (val.type === "email") {
+      const email = z.string().email().safeParse(val.target.trim());
+      if (!email.success) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid email", path: ["target"] });
+      }
+    }
+    if (val.type === "slack" && !val.target.startsWith("https://")) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Slack webhook must be an https URL",
+        path: ["target"],
+      });
+    }
+  });
+
+export const UpsertProviderSecretSchema = z.object({
+  projectId: z.string().uuid(),
+  provider: z.enum(["openai", "anthropic", "google"]),
+  secret: z
+    .string()
+    .trim()
+    .min(8)
+    .max(512)
+    .refine((v) => !/^(sk-\.\.\.|your-|xxx|placeholder)/i.test(v), "Replace the placeholder with a real key"),
 });

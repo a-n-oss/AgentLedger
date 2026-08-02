@@ -9,6 +9,7 @@ import {
   memberships,
   organizations,
   projects,
+  providerSecrets,
   runs,
 } from "./schema.js";
 
@@ -24,10 +25,18 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
     references: [organizations.id],
   }),
   apiKeys: many(apiKeys),
+  providerSecrets: many(providerSecrets),
   agents: many(agents),
   budgets: many(budgets),
   events: many(events),
   runs: many(runs),
+}));
+
+export const providerSecretsRelations = relations(providerSecrets, ({ one }) => ({
+  project: one(projects, {
+    fields: [providerSecrets.projectId],
+    references: [projects.id],
+  }),
 }));
 
 export const agentsRelations = relations(agents, ({ one, many }) => ({

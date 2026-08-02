@@ -19,6 +19,7 @@ export const eventTypeEnum = pgEnum("event_type", ["llm", "tool", "mcp", "error"
 export const runStatusEnum = pgEnum("run_status", ["running", "completed", "failed", "cancelled"]);
 export const alertChannelTypeEnum = pgEnum("alert_channel_type", ["slack", "email"]);
 export const membershipRoleEnum = pgEnum("membership_role", ["owner", "admin", "member"]);
+export const providerEnum = pgEnum("provider", ["openai", "anthropic", "google"]);
 
 export const organizations = pgTable("organizations", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -85,6 +86,27 @@ export const apiKeys = pgTable(
   (t) => [
     uniqueIndex("api_keys_hash_uidx").on(t.keyHash),
     index("api_keys_project_idx").on(t.projectId),
+  ],
+);
+
+/** Encrypted upstream provider keys (BYOK). Plaintext never stored. */
+export const providerSecrets = pgTable(
+  "provider_secrets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    provider: providerEnum("provider").notNull(),
+    ciphertext: text("ciphertext").notNull(),
+    iv: text("iv").notNull(),
+    keyHint: text("key_hint").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("provider_secrets_project_provider_uidx").on(t.projectId, t.provider),
+    index("provider_secrets_project_idx").on(t.projectId),
   ],
 );
 
@@ -224,6 +246,7 @@ export const stripeEvents = pgTable("stripe_events", {
 export type Organization = typeof organizations.$inferSelect;
 export type Project = typeof projects.$inferSelect;
 export type ApiKey = typeof apiKeys.$inferSelect;
+export type ProviderSecret = typeof providerSecrets.$inferSelect;
 export type Agent = typeof agents.$inferSelect;
 export type Budget = typeof budgets.$inferSelect;
 export type Run = typeof runs.$inferSelect;

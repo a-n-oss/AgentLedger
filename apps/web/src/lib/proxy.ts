@@ -1,6 +1,7 @@
 import { calculateCostUsd } from "@agentledger/shared";
+import { getProviderSecretPlaintext, type ProviderId } from "./secrets";
 
-export type ProxyProvider = "openai" | "anthropic" | "google";
+export type ProxyProvider = ProviderId;
 
 export function detectProvider(model: string | undefined, explicit?: string | null): ProxyProvider {
   if (explicit === "anthropic" || explicit === "google" || explicit === "openai") return explicit;
@@ -25,27 +26,64 @@ export function providerBaseUrl(provider: ProxyProvider) {
   }
 }
 
-export function providerAuthHeaders(provider: ProxyProvider): HeadersInit {
+function envProviderKey(provider: ProxyProvider): string | undefined {
   switch (provider) {
-    case "openai": {
-      const key = process.env.OPENAI_API_KEY;
-      if (!key) throw new Error("OPENAI_API_KEY is not configured on AgentLedger");
-      return { authorization: `Bearer ${key}` };
+    case "openai":
+      return process.env.OPENAI_API_KEY;
+    case "anthropic":
+      return process.env.ANTHROPIC_API_KEY;
+    case "google":
+      return process.env.GOOGLE_API_KEY;
+    default: {
+      const _exhaustive: never = provider;
+      return _exhaustive;
     }
-    case "anthropic": {
-      const key = process.env.ANTHROPIC_API_KEY;
-      if (!key) throw new Error("ANTHROPIC_API_KEY is not configured on AgentLedger");
+  }
+}
+
+/**
+ * Resolve upstream provider key: project BYOK first, then process env (self-host).
+ * Never log the returned key.
+ */
+export async function resolveProviderKey(
+  provider: ProxyProvider,
+  projectId: string,
+): Promise<string> {
+  try {
+    const byok = await getProviderSecretPlaintext(projectId, provider);
+    if (byok) return byok;
+  } catch (err) {
+    // Missing master key or decrypt failure — fall through to env for self-host
+    if (process.env.AGENTLEDGER_SECRETS_KEY) {
+      console.error("BYOK decrypt failed for project (details redacted)");
+      throw err instanceof Error ? err : new Error("Failed to decrypt provider key");
+    }
+  }
+
+  const fromEnv = envProviderKey(provider);
+  if (fromEnv) return fromEnv;
+
+  throw new Error(
+    `No ${provider} key configured. Add a provider key in project settings (BYOK), or set the server env fallback for self-host.`,
+  );
+}
+
+export async function providerAuthHeaders(
+  provider: ProxyProvider,
+  projectId: string,
+): Promise<HeadersInit> {
+  const key = await resolveProviderKey(provider, projectId);
+  switch (provider) {
+    case "openai":
+      return { authorization: `Bearer ${key}` };
+    case "anthropic":
       return {
         "x-api-key": key,
         "anthropic-version": "2023-06-01",
         authorization: `Bearer ${key}`,
       };
-    }
-    case "google": {
-      const key = process.env.GOOGLE_API_KEY;
-      if (!key) throw new Error("GOOGLE_API_KEY is not configured on AgentLedger");
+    case "google":
       return { authorization: `Bearer ${key}` };
-    }
     default: {
       const _exhaustive: never = provider;
       return _exhaustive;

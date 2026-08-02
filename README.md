@@ -160,9 +160,9 @@ sequenceDiagram
   alt hard budget exceeded
     Proxy-->>App: 402
   end
-  Proxy->>Prov: Forward with server OPENAI_API_KEY etc.
+  Proxy->>Prov: Forward with project BYOK key (or env fallback)
   alt provider key missing
-    Proxy-->>App: 503 Provider not configured
+    Proxy-->>App: 503/400 Add a provider key in project settings
   end
   Prov-->>Proxy: Completion + usage tokens
   Proxy->>DB: Insert event + recordSpend
@@ -184,7 +184,7 @@ sequenceDiagram
 
 **Streaming:** SSE is passed through. Cost is logged as a provisional estimate (token usage is incomplete mid-stream).
 
-### Customer install (when you have a provider key on the server)
+### Customer install (when AgentLedger has a provider key)
 
 ```ts
 import OpenAI from "openai";
@@ -205,7 +205,7 @@ await openai.chat.completions.create({
 });
 ```
 
-The **OpenAI/Anthropic/Google keys live only on the AgentLedger server** (`OPENAI_API_KEY`, etc.). Customers never need those keys in their apps when using the proxy.
+Provider keys are **BYOK per project** (encrypted with `AGENTLEDGER_SECRETS_KEY`) or optional server env fallback (`OPENAI_API_KEY`, etc.). Agents only need the AgentLedger `al_live_…` key.
 
 ---
 
@@ -375,7 +375,7 @@ curl -s http://localhost:3000/api/v1/runs \
 
 ### What a provider key unlocks
 
-Set `OPENAI_API_KEY=` (or Anthropic/Google) in `apps/web/.env.local`, restart `pnpm dev`, then:
+Paste an OpenAI key under the project’s **Provider keys (BYOK)** (needs `AGENTLEDGER_SECRETS_KEY`), or set `OPENAI_API_KEY=` as a self-host fallback, then:
 
 ```bash
 curl -s http://localhost:3000/api/v1/chat/completions \
@@ -392,9 +392,9 @@ You’ll see a real completion, `x-al-cost-usd` response header, and a new event
 
 ## Deploy
 
-**Self-host** is the intended production path (Docker Compose Postgres + `pnpm`). The Railway deployment in this project is for **public docs + demo** only (`AGENTLEDGER_DEMO_MODE=true`, no provider keys).
+**Self-host / private hosted** with invite-only Clerk + BYOK is the production path. The Railway deployment in this project is for **public docs + demo** only (`AGENTLEDGER_DEMO_MODE=true`, no provider secrets). Stripe tiers are deferred while BYOK-first.
 
-See **[DEPLOY.md](DEPLOY.md)** for self-host steps, demo-site notes, and smoke checks. Configs: [`railway.toml`](railway.toml) (demo), [`apps/web/vercel.json`](apps/web/vercel.json) (optional marketing).
+See **[DEPLOY.md](DEPLOY.md)** and `/docs` for BYOK, invite-only, and smoke checks. Configs: [`railway.toml`](railway.toml) (demo), [`apps/web/vercel.json`](apps/web/vercel.json) (optional marketing).
 
 ## Quick start
 
@@ -435,12 +435,14 @@ Open:
 | `AGENTLEDGER_DEMO_MODE` | Recommended locally | `true` skips Clerk; uses demo org |
 | `SEED_CLERK_ORG_ID` | Optional | Demo/seed org id (default `org_demo_agentledger`) |
 | `NEXT_PUBLIC_APP_URL` | Yes for links/Stripe | e.g. `http://localhost:3000` |
-| `OPENAI_API_KEY` | Only for proxy | Upstream OpenAI |
-| `ANTHROPIC_API_KEY` | Only for proxy | Upstream Anthropic |
-| `GOOGLE_API_KEY` | Only for proxy | Upstream Google |
+| `AGENTLEDGER_SECRETS_KEY` | For BYOK UI | `openssl rand -base64 32` — encrypts project provider keys |
+| `OPENAI_API_KEY` | Optional fallback | Upstream OpenAI if no project BYOK |
+| `ANTHROPIC_API_KEY` | Optional fallback | Upstream Anthropic |
+| `GOOGLE_API_KEY` | Optional fallback | Upstream Google |
 | Clerk keys | Only if demo off | Real multi-user auth |
-| Stripe keys | Only for live billing | Checkout / portal / webhooks |
-| `RESEND_API_KEY` | Optional | Email budget alerts |
+| `NEXT_PUBLIC_CLERK_INVITE_ONLY` | Hosted | Hides public sign-up UI |
+| Stripe keys | Deferred | Checkout / portal / webhooks |
+| `RESEND_API_KEY` | Optional | Email budget alerts (+ test send on `/app/alerts`) |
 | `INNGEST_*` | Optional | Async alert delivery |
 
 See [`apps/web/.env.example`](apps/web/.env.example).

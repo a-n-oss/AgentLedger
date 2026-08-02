@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getProject } from "@/app/actions";
 import { ApiKeyManager } from "@/components/api-key-manager";
+import { ProviderKeysManager } from "@/components/provider-keys-manager";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function ProjectDetailPage({
@@ -35,6 +36,11 @@ export default async function ProjectDetailPage({
           </pre>
         </CardContent>
       </Card>
+      <ProviderKeysManager
+        projectId={data.project.id}
+        secrets={data.providerKeys}
+        secretsKeyConfigured={data.secretsKeyConfigured}
+      />
       <ApiKeyManager projectId={data.project.id} keys={data.keys} />
     </div>
   );

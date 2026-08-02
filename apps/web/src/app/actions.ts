@@ -10,12 +10,25 @@ import {
   events,
   organizations,
   projects,
+  providerSecrets,
   runs,
 } from "@agentledger/db";
-import { CreateAlertChannelSchema, CreateBudgetSchema, CreateProjectSchema } from "@agentledger/shared";
+import {
+  CreateAlertChannelSchema,
+  CreateBudgetSchema,
+  CreateProjectSchema,
+  UpsertProviderSecretSchema,
+} from "@agentledger/shared";
 import { generateApiKey } from "@/lib/api-keys";
 import { requireAppSession } from "@/lib/auth-session";
 import { getDb } from "@/lib/db";
+import { sendBudgetAlertsInline } from "@/lib/alerts";
+import {
+  encryptSecret,
+  keyHint,
+  listProviderSecretHints,
+  secretsKeyConfigured,
+} from "@/lib/secrets";
 import { appUrl, getStripe } from "@/lib/stripe";
 
 export async function createProjectAction(formData: FormData) {
@@ -138,9 +151,9 @@ export async function createAlertChannelAction(formData: FormData) {
   }
   const parsed = CreateAlertChannelSchema.safeParse({
     type,
-    target: formData.get("target"),
+    target: String(formData.get("target") ?? "").trim(),
   });
-  if (!parsed.success) throw new Error("Invalid alert channel");
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Invalid alert channel");
 
   const db = getDb();
   await db.insert(alertChannels).values({
@@ -158,6 +171,86 @@ export async function deleteAlertChannelAction(id: string) {
     .delete(alertChannels)
     .where(and(eq(alertChannels.id, id), eq(alertChannels.organizationId, session.orgId)));
   revalidatePath("/app/alerts");
+}
+
+export async function sendTestAlertAction() {
+  const session = await requireAppSession();
+  await sendBudgetAlertsInline({
+    organizationId: session.orgId,
+    budgetName: "Test alert",
+    threshold: 80,
+    spentUsd: 80,
+    amountUsd: 100,
+    hard: false,
+  });
+  revalidatePath("/app/alerts");
+  return { ok: true as const };
+}
+
+export async function upsertProviderSecretAction(formData: FormData) {
+  const session = await requireAppSession();
+  if (!secretsKeyConfigured()) {
+    throw new Error(
+      "AGENTLEDGER_SECRETS_KEY is not configured. Generate with: openssl rand -base64 32",
+    );
+  }
+  const parsed = UpsertProviderSecretSchema.safeParse({
+    projectId: formData.get("projectId"),
+    provider: formData.get("provider"),
+    secret: formData.get("secret"),
+  });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Invalid provider key");
+
+  const db = getDb();
+  const project = await db.query.projects.findFirst({
+    where: and(eq(projects.id, parsed.data.projectId), eq(projects.organizationId, session.orgId)),
+  });
+  if (!project) throw new Error("Project not found");
+
+  const { ciphertext, iv } = encryptSecret(parsed.data.secret);
+  const hint = keyHint(parsed.data.secret);
+  const existing = await db.query.providerSecrets.findFirst({
+    where: and(
+      eq(providerSecrets.projectId, parsed.data.projectId),
+      eq(providerSecrets.provider, parsed.data.provider),
+    ),
+  });
+
+  if (existing) {
+    await db
+      .update(providerSecrets)
+      .set({ ciphertext, iv, keyHint: hint, updatedAt: new Date() })
+      .where(eq(providerSecrets.id, existing.id));
+  } else {
+    await db.insert(providerSecrets).values({
+      projectId: parsed.data.projectId,
+      provider: parsed.data.provider,
+      ciphertext,
+      iv,
+      keyHint: hint,
+    });
+  }
+
+  revalidatePath(`/app/projects/${parsed.data.projectId}`);
+}
+
+export async function deleteProviderSecretAction(projectId: string, provider: string) {
+  const session = await requireAppSession();
+  if (provider !== "openai" && provider !== "anthropic" && provider !== "google") {
+    throw new Error("Invalid provider");
+  }
+  const db = getDb();
+  const project = await db.query.projects.findFirst({
+    where: and(eq(projects.id, projectId), eq(projects.organizationId, session.orgId)),
+  });
+  if (!project) throw new Error("Project not found");
+
+  await db
+    .delete(providerSecrets)
+    .where(
+      and(eq(providerSecrets.projectId, projectId), eq(providerSecrets.provider, provider)),
+    );
+  revalidatePath(`/app/projects/${projectId}`);
 }
 
 export async function createCheckoutSessionAction(plan: "pro" | "team") {
@@ -337,7 +430,8 @@ export async function getProject(projectId: string) {
     where: eq(apiKeys.projectId, projectId),
     orderBy: [desc(apiKeys.createdAt)],
   });
-  return { project, keys };
+  const providerKeys = await listProviderSecretHints(projectId);
+  return { project, keys, providerKeys, secretsKeyConfigured: secretsKeyConfigured() };
 }
 
 export async function listAgents() {

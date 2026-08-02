@@ -1,54 +1,64 @@
 # Deploy AgentLedger
 
-AgentLedger is **self-host first**. Run the proxy and dashboard on your own Postgres + Node host. The public Railway site is **docs + seeded demo only** — do not point production agent traffic at it.
+AgentLedger is designed to run as **your** control plane. Use **BYOK** (encrypted per-project provider keys) on hosted/private installs so you never put customer OpenAI keys in env and redeploy. The Railway project in this repo is a **docs + seeded demo** only.
 
-| Path | Best for | Notes |
-|---|---|---|
-| **Self-host (recommended)** | Real proxy, budgets, your provider keys | Docker Compose Postgres + `pnpm` app |
-| **Public demo (Railway)** | Marketing, docs, UI walkthrough | `AGENTLEDGER_DEMO_MODE=true`; no live LLM proxy |
-| **Vercel (optional)** | Marketing front door only | Poor fit for long LLM streams |
+| Path | Purpose |
+|---|---|
+| **A) Self-host / private hosted** | Production: Postgres + invite-only Clerk + BYOK (or env fallback) |
+| **B) Public Railway demo** | Docs + demo UI — no provider secrets |
+
+Stripe subscription tiers are deferred while BYOK is the primary model.
 
 ---
 
-## A) Self-host (recommended)
+## A) Self-host / private hosted (recommended)
 
-### 1. Postgres
+### 1. Database
 ```bash
 docker compose up -d
+# DATABASE_URL=postgres://postgres:postgres@localhost:5433/agentledger
 ```
-Host port **5433** → container `5432`. Default URL:
 
-```text
-postgres://postgres:postgres@localhost:5433/agentledger
-```
+Or any managed Postgres (Neon, RDS, Railway Postgres for a private instance, etc.).
 
 ### 2. Environment
 ```bash
 cp apps/web/.env.example apps/web/.env.local
 ```
 
-Minimum for a local control plane:
+Minimum local explore (demo mode):
 
 ```bash
 DATABASE_URL=postgres://postgres:postgres@localhost:5433/agentledger
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-AGENTLEDGER_DEMO_MODE=true   # set false + Clerk for multi-user auth
-OPENAI_API_KEY=              # required only for live proxy
+AGENTLEDGER_DEMO_MODE=true
 ```
 
-For a private multi-user install:
+Private hosted / multi-user (invite-only + BYOK):
 
 ```bash
 AGENTLEDGER_DEMO_MODE=false
+NEXT_PUBLIC_CLERK_INVITE_ONLY=true
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
 CLERK_SECRET_KEY=
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/app
 NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/app
+
+# Master key for AES-GCM BYOK (required to save keys in UI)
+# openssl rand -base64 32
+AGENTLEDGER_SECRETS_KEY=
+
+# Optional single-tenant fallback if a project has no BYOK secret
+OPENAI_API_KEY=
+
+# Budget alert smoke (optional)
+RESEND_API_KEY=
+ALERT_FROM_EMAIL=alerts@yourdomain.com
 ```
 
-Stripe is optional (self-host billing UI works without it; checkout shows a demo notice).
+In [Clerk Dashboard](https://dashboard.clerk.com): disable public sign-ups / use invitations only.
 
 ### 3. Install and run
 ```bash
@@ -58,24 +68,13 @@ pnpm db:seed          # optional charts + demo API key
 pnpm dev              # http://localhost:3000
 ```
 
-Production-style process on your host:
-
-```bash
-pnpm build
-pnpm start            # binds 0.0.0.0; set PORT if needed
-```
+Then: create a project → **Provider keys (BYOK)** → paste OpenAI key → use `al_live_…` with `/api/v1`.
 
 ### 4. Smoke checks
 ```bash
 curl -s http://localhost:3000/api/health
 
-# Run ingest (no provider key)
-curl -s http://localhost:3000/api/v1/runs \
-  -H "authorization: Bearer al_live_…" \
-  -H "content-type: application/json" \
-  -d '{"agent":"local-bot","team":"platform"}'
-
-# Live proxy (needs OPENAI_API_KEY on the server)
+# Live proxy (BYOK or OPENAI_API_KEY)
 curl -s http://localhost:3000/api/v1/chat/completions \
   -H "authorization: Bearer al_live_…" \
   -H "content-type: application/json" \
@@ -83,22 +82,15 @@ curl -s http://localhost:3000/api/v1/chat/completions \
   -d '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"ping"}]}'
 ```
 
-See [README.md](README.md) Quick start and `/docs` in the app for the proxy SDK walkthrough.
+Email: open `/app/alerts` → **Send test alert**.
+
+See `/docs` for BYOK, invite-only, and alert details.
 
 ---
 
 ## B) Public demo (Railway)
 
-The linked Railway project hosts **docs + demo UI** for people who want to click around without cloning.
-
-Configs in [`railway.toml`](railway.toml):
-
-- **Build:** `pnpm install && pnpm build`
-- **Pre-deploy:** `pnpm db:migrate`
-- **Start:** `pnpm start`
-- **Health:** `GET /api/health`
-
-Required env on the demo service:
+Configs in [`railway.toml`](railway.toml). Required env:
 
 ```bash
 DATABASE_URL=<Railway Postgres>
@@ -106,30 +98,26 @@ NEXT_PUBLIC_APP_URL=https://<your-railway-domain>
 AGENTLEDGER_DEMO_MODE=true
 ```
 
-Then seed once:
-
 ```bash
 railway run pnpm db:seed
 ```
 
-**Do not** set provider keys on the public demo (avoids turning it into an open proxy).  
-**Do not** use the Railway URL as `baseURL` for production agents — self-host instead.
-
-Clerk keys may remain on the service; demo mode bypasses them for `/app`.
+**Do not** set `OPENAI_API_KEY`, `AGENTLEDGER_SECRETS_KEY`, or project BYOK on the public demo.
 
 ---
 
 ## C) Vercel (optional marketing only)
 
-Config: [`apps/web/vercel.json`](apps/web/vercel.json). Suitable for a static marketing front door with an external Postgres. Serverless timeouts are a poor fit for the LLM proxy — keep the control plane self-hosted.
+Config: [`apps/web/vercel.json`](apps/web/vercel.json). Keep the LLM proxy on a long-lived host.
 
 ---
 
 ## Flag cheat sheet
 
-| Setting | Self-host (local) | Self-host (private multi-user) | Public Railway demo |
+| Setting | Local explore | Private hosted | Public Railway |
 |---|---|---|---|
 | `AGENTLEDGER_DEMO_MODE` | `true` | `false` | `true` |
-| Clerk | Optional | Required | Unused when demo on |
-| Provider key | For live proxy | For live proxy | Leave unset |
-| Stripe | Optional | Optional | Leave unset |
+| `NEXT_PUBLIC_CLERK_INVITE_ONLY` | — | `true` | — |
+| `AGENTLEDGER_SECRETS_KEY` | For BYOK UI | Required for BYOK | Leave unset |
+| Provider key | BYOK or env | BYOK preferred | Leave unset |
+| Stripe | Deferred | Deferred | Leave unset |
