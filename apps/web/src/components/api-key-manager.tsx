@@ -33,7 +33,7 @@ export function ApiKeyManager({
         </Button>
       </div>
       {freshKey && (
-        <pre className="rounded-md bg-[var(--al-ink)] p-3 text-xs text-[var(--al-glow)] whitespace-pre-wrap break-all">
+        <pre className="al-code rounded-md p-3 text-xs whitespace-pre-wrap break-all">
           {freshKey}
         </pre>
       )}

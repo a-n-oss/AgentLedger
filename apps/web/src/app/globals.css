@@ -1,21 +1,83 @@
 @import "tailwindcss";
 
 :root {
-  --al-paper: #f3efe6;
-  --al-panel: #fffdf8;
-  --al-panel-2: #ebe4d6;
-  --al-ink: #1c2430;
-  --al-ink-2: #2c3644;
-  --al-muted: #667084;
-  --al-line: #d7d0c2;
-  --al-accent: #0f7a6c;
-  --al-accent-2: #0b5f54;
-  --al-glow: #c8e7a0;
+  color-scheme: light;
+  --al-paper: #f2f5fb;
+  --al-panel: #ffffff;
+  --al-panel-2: #e7eef9;
+  --al-ink: #0b1220;
+  --al-ink-2: #1a2740;
+  --al-on-ink: #f8fafc;
+  --al-muted: #5b6b86;
+  --al-line: #cfd9eb;
+  --al-accent: #1565ff;
+  --al-accent-2: #0f4fd6;
+  --al-accent-soft: rgba(21, 101, 255, 0.12);
+  --al-signal: #00a3a3;
+  --al-code-bg: #0f172a;
+  --al-code-fg: #7dd3fc;
+  --al-danger: #dc2626;
+  --al-hero-spot-1: rgba(21, 101, 255, 0.18);
+  --al-hero-spot-2: rgba(0, 163, 163, 0.14);
+  --al-grid: rgba(21, 101, 255, 0.07);
   --background: var(--al-paper);
   --foreground: var(--al-ink);
-  --font-display: "Fraunces", Georgia, serif;
-  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --al-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --al-paper: #070b14;
+  --al-panel: #111827;
+  --al-panel-2: #1a2438;
+  --al-ink: #e8eef9;
+  --al-ink-2: #c7d2e5;
+  --al-on-ink: #e8eef9;
+  --al-muted: #93a0b8;
+  --al-line: #2a354c;
+  --al-accent: #4d8dff;
+  --al-accent-2: #2f6fff;
+  --al-accent-soft: rgba(77, 141, 255, 0.18);
+  --al-signal: #2dd4bf;
+  --al-code-bg: #020617;
+  --al-code-fg: #7dd3fc;
+  --al-danger: #f87171;
+  --al-hero-spot-1: rgba(77, 141, 255, 0.22);
+  --al-hero-spot-2: rgba(45, 212, 191, 0.12);
+  --al-grid: rgba(77, 141, 255, 0.1);
+  --background: var(--al-paper);
+  --foreground: var(--al-ink);
+  --al-shadow: 0 22px 60px rgba(0, 0, 0, 0.45);
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) {
+    color-scheme: dark;
+    --al-paper: #070b14;
+    --al-panel: #111827;
+    --al-panel-2: #1a2438;
+    --al-ink: #e8eef9;
+    --al-ink-2: #c7d2e5;
+    --al-on-ink: #e8eef9;
+    --al-muted: #93a0b8;
+    --al-line: #2a354c;
+    --al-accent: #4d8dff;
+    --al-accent-2: #2f6fff;
+    --al-accent-soft: rgba(77, 141, 255, 0.18);
+    --al-signal: #2dd4bf;
+    --al-code-bg: #020617;
+    --al-code-fg: #7dd3fc;
+    --al-danger: #f87171;
+    --al-hero-spot-1: rgba(77, 141, 255, 0.22);
+    --al-hero-spot-2: rgba(45, 212, 191, 0.12);
+    --al-grid: rgba(77, 141, 255, 0.1);
+    --background: var(--al-paper);
+    --foreground: var(--al-ink);
+    --al-shadow: 0 22px 60px rgba(0, 0, 0, 0.45);
+  }
 }
 
 @theme inline {
@@ -29,23 +91,60 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
   color: var(--al-ink);
-  background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(15, 122, 108, 0.16), transparent 55%),
-    radial-gradient(900px 500px at 90% 0%, rgba(200, 231, 160, 0.35), transparent 50%),
-    linear-gradient(180deg, #f7f3ea 0%, #efe8da 48%, #e7dfd0 100%);
+  background-color: var(--al-paper);
+  background-image:
+    radial-gradient(1100px 520px at 8% -8%, var(--al-hero-spot-1), transparent 55%),
+    radial-gradient(900px 480px at 92% 0%, var(--al-hero-spot-2), transparent 50%),
+    linear-gradient(180deg, var(--al-paper) 0%, var(--al-paper) 100%);
   font-family: var(--font-sans);
+  transition: background-color 180ms ease, color 180ms ease;
 }
 
 a {
-  color: inherit;
   text-decoration: none;
 }
 
 code,
 pre {
   font-family: var(--font-mono);
+}
+
+.al-code {
+  background: var(--al-code-bg);
+  color: var(--al-code-fg);
+  border: 1px solid var(--al-line);
+}
+
+.docs-shell {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--al-panel) 88%, transparent), var(--al-paper));
+}
+
+.docs-prose h1,
+.docs-prose h2 {
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.docs-prose p,
+.docs-prose li {
+  line-height: 1.7;
+  max-width: 68ch;
+}
+
+.docs-prose code:not(pre code) {
+  border: 1px solid var(--al-line);
+  background: var(--al-panel-2);
+  color: var(--al-ink);
+  border-radius: 0.35rem;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.9em;
 }

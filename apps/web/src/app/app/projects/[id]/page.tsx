@@ -26,7 +26,7 @@ export default async function ProjectDetailPage({
           <CardTitle>Install snippet</CardTitle>
         </CardHeader>
         <CardContent>
-          <pre className="overflow-x-auto rounded-md bg-[var(--al-ink)] p-4 text-xs text-[var(--al-glow)]">
+          <pre className="al-code overflow-x-auto rounded-md p-4 text-xs">
 {`const openai = new OpenAI({
   apiKey: "YOUR_AGENTLEDGER_KEY",
   baseURL: "${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/v1",

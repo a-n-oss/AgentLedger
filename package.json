@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "dev": "pnpm --filter @agentledger/web dev",
-    "build": "pnpm -r --filter @agentledger/shared --filter @agentledger/db --filter @agentledger/sdk --filter @agentledger/web build",
+    "build": "pnpm --filter @agentledger/shared build && pnpm --filter @agentledger/db build && pnpm --filter @agentledger/sdk build && pnpm --filter @agentledger/web build",
+    "start": "pnpm --filter @agentledger/web start",
     "db:generate": "pnpm --filter @agentledger/db generate",
     "db:migrate": "pnpm --filter @agentledger/db migrate",
     "db:seed": "pnpm --filter @agentledger/db seed",

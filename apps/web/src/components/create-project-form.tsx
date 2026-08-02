@@ -38,7 +38,7 @@ export function CreateProjectForm() {
       </Button>
       {error && <p className="text-sm text-red-600">{error}</p>}
       {apiKey && (
-        <div className="rounded-md bg-[var(--al-ink)] p-3 text-xs text-[var(--al-glow)]">
+        <div className="al-code rounded-md p-3 text-xs">
           Save this API key now — it won&apos;t be shown again:
           <pre className="mt-2 whitespace-pre-wrap break-all">{apiKey}</pre>
         </div>
