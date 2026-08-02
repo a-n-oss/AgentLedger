@@ -1,30 +1,32 @@
 import Link from "next/link";
-import { SignIn } from "@clerk/nextjs";
+import { AuthShell } from "@/components/auth/auth-shell";
+import { SignInForm } from "@/components/auth/sign-in-form";
 import { Button } from "@/components/ui/button";
 
 export default function SignInPage() {
   if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
     return (
-      <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6">
-        <h1 className="font-[family-name:var(--font-display)] text-3xl">Sign in</h1>
-        <p className="mt-2 text-sm text-[var(--al-muted)]">
-          Clerk keys are not configured. Enable demo mode or add Clerk credentials.
-        </p>
-        <div className="mt-6 flex gap-3">
-          <Link href="/app">
-            <Button variant="accent">Continue to app</Button>
-          </Link>
-          <Link href="/">
-            <Button variant="secondary">Home</Button>
-          </Link>
+      <AuthShell title="Sign in" subtitle="Clerk keys are not configured yet.">
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--al-muted)]">
+            Add Clerk credentials, or enable demo mode to explore the app.
+          </p>
+          <div className="flex gap-3">
+            <Link href="/app">
+              <Button variant="accent">Continue to app</Button>
+            </Link>
+            <Link href="/">
+              <Button variant="secondary">Home</Button>
+            </Link>
+          </div>
         </div>
-      </div>
+      </AuthShell>
     );
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-6">
-      <SignIn fallbackRedirectUrl="/app" signUpUrl="/sign-up" />
-    </div>
+    <AuthShell title="Sign in" subtitle="Access your agent spend control plane.">
+      <SignInForm />
+    </AuthShell>
   );
 }

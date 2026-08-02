@@ -1,27 +1,27 @@
 import Link from "next/link";
-import { SignUp } from "@clerk/nextjs";
+import { AuthShell } from "@/components/auth/auth-shell";
+import { SignUpForm } from "@/components/auth/sign-up-form";
 import { Button } from "@/components/ui/button";
 
 export default function SignUpPage() {
   if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
     return (
-      <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6">
-        <h1 className="font-[family-name:var(--font-display)] text-3xl">Sign up</h1>
-        <p className="mt-2 text-sm text-[var(--al-muted)]">
-          Clerk keys are not configured. Enable demo mode or add Clerk credentials.
-        </p>
-        <div className="mt-6">
+      <AuthShell title="Sign up" subtitle="Clerk keys are not configured yet.">
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--al-muted)]">
+            Add Clerk credentials, or enable demo mode to explore the app.
+          </p>
           <Link href="/app">
             <Button variant="accent">Open app</Button>
           </Link>
         </div>
-      </div>
+      </AuthShell>
     );
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-6">
-      <SignUp fallbackRedirectUrl="/app" signInUrl="/sign-in" />
-    </div>
+    <AuthShell title="Create your account" subtitle="Start controlling agent spend in minutes.">
+      <SignUpForm />
+    </AuthShell>
   );
 }

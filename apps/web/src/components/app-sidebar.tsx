@@ -1,5 +1,6 @@
 import { BadgeCheck, Boxes, Gauge, KeyRound, Receipt, ScrollText, Settings, ShieldAlert, Workflow } from "lucide-react";
 import Link from "next/link";
+import { BrandLockup } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -17,12 +18,7 @@ const links = [
 export function AppSidebar({ pathname }: { pathname: string }) {
   return (
     <aside className="flex h-full w-60 flex-col border-r border-[var(--al-line)] bg-[var(--al-panel)]/80 px-3 py-5 backdrop-blur">
-      <Link
-        href="/"
-        className="mb-6 px-3 font-[family-name:var(--font-display)] text-xl font-semibold tracking-tight"
-      >
-        AgentLedger
-      </Link>
+      <BrandLockup href="/" markSize={28} className="mb-6 px-3 text-lg" />
       <nav className="flex flex-1 flex-col gap-1">
         {links.map((link) => {
           const active = pathname === link.href || (link.href !== "/app" && pathname.startsWith(link.href));

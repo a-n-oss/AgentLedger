@@ -1,3 +1,5 @@
+import { LegalShell } from "@/components/legal-shell";
+
 export default function PrivacyPage() {
   return (
     <LegalShell title="Privacy Policy">
@@ -11,14 +13,5 @@ export default function PrivacyPage() {
         email) solely to operate the service. Contact privacy@agentledger.dev for data requests.
       </p>
     </LegalShell>
-  );
-}
-
-function LegalShell({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="mx-auto max-w-3xl px-6 py-12 prose-like">
-      <h1 className="font-[family-name:var(--font-display)] text-4xl">{title}</h1>
-      <div className="mt-6 space-y-4 text-[var(--al-muted)]">{children}</div>
-    </div>
   );
 }

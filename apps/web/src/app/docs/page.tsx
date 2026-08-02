@@ -1,17 +1,11 @@
 import Link from "next/link";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { SiteHeader } from "@/components/site-header";
 
 export default function DocsPage() {
   return (
     <div className="docs-shell min-h-screen text-[var(--al-ink)]">
-      <div className="mx-auto max-w-3xl px-6 py-10 md:py-14">
-        <div className="mb-8 flex items-center justify-between gap-4">
-          <Link href="/" className="text-sm font-medium text-[var(--al-accent)] hover:underline">
-            ← AgentLedger
-          </Link>
-          <ThemeToggle />
-        </div>
-
+      <SiteHeader variant="simple" />
+      <div className="mx-auto max-w-3xl px-6 pb-14 pt-2 md:pb-16">
         <article className="docs-prose">
           <h1 className="font-[family-name:var(--font-display)] text-4xl font-semibold">
             Proxy quickstart

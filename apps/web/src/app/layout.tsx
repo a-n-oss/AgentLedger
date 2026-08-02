@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: "AgentLedger — Control plane for agent spend",
   description:
     "Hard budgets, agent-run ledgers, chargeback, and audit export for production AI agents.",
+  icons: {
+    icon: [{ url: "/brand/agentledger-mark.svg", type: "image/svg+xml" }],
+  },
 };
 
 function Providers({ children }: { children: React.ReactNode }) {
