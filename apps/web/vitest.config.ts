@@ -10,6 +10,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@agentledger/shared": path.resolve(__dirname, "../../packages/shared/src/index.ts"),
+      "@agentledger/sdk": path.resolve(__dirname, "../../packages/sdk/src/index.ts"),
     },
   },
 });
