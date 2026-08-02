@@ -1,125 +1,135 @@
 # Deploy AgentLedger
 
-## Which platform for this test?
+AgentLedger is **self-host first**. Run the proxy and dashboard on your own Postgres + Node host. The public Railway site is **docs + seeded demo only** — do not point production agent traffic at it.
 
-| Option | Best for | Caveat |
+| Path | Best for | Notes |
 |---|---|---|
-| **Railway (Hobby) — recommended first** | Real E2E test of proxy + budgets + dashboard | One project: Postgres + web |
-| **Vercel + Railway/Neon Postgres** | Fast UI deploys, edge CDN | Serverless timeouts can cut long LLM streams; keep Postgres elsewhere |
-
-**Recommendation:** start on **Railway** for this MVP test. The product is an LLM proxy — a long-lived Node server is a better fit than Vercel serverless for streaming/completions. Use Vercel later if you want a polished marketing front door.
+| **Self-host (recommended)** | Real proxy, budgets, your provider keys | Docker Compose Postgres + `pnpm` app |
+| **Public demo (Railway)** | Marketing, docs, UI walkthrough | `AGENTLEDGER_DEMO_MODE=true`; no live LLM proxy |
+| **Vercel (optional)** | Marketing front door only | Poor fit for long LLM streams |
 
 ---
 
-## A) Railway (recommended)
+## A) Self-host (recommended)
 
-### 1. Create project
-1. New project → **Deploy from GitHub** (this repo, branch `cursor/agentledger-mvp` or `main`).
-2. Add a **Postgres** plugin in the same project.
-3. Railway will inject `DATABASE_URL`.
+### 1. Postgres
+```bash
+docker compose up -d
+```
+Host port **5433** → container `5432`. Default URL:
 
-### 2. Service settings
-Configs in [`railway.toml`](railway.toml):
-- **Build:** `pnpm install && pnpm build`
-- **Pre-deploy:** `pnpm db:migrate`
-- **Start:** `pnpm start` (binds to Railway `PORT`)
-- **Health:** `GET /api/health`
+```text
+postgres://postgres:postgres@localhost:5433/agentledger
+```
 
-Root directory: **repo root** (monorepo).
+### 2. Environment
+```bash
+cp apps/web/.env.example apps/web/.env.local
+```
 
-### 3. Environment variables
-
-Copy from [`apps/web/.env.example`](apps/web/.env.example). Minimum for a real closed test:
+Minimum for a local control plane:
 
 ```bash
-# Required
-DATABASE_URL=<from Railway Postgres>
-NEXT_PUBLIC_APP_URL=https://<your-railway-domain>
-AGENTLEDGER_DEMO_MODE=false
+DATABASE_URL=postgres://postgres:postgres@localhost:5433/agentledger
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+AGENTLEDGER_DEMO_MODE=true   # set false + Clerk for multi-user auth
+OPENAI_API_KEY=              # required only for live proxy
+```
 
-# Auth (required when demo is false)
+For a private multi-user install:
+
+```bash
+AGENTLEDGER_DEMO_MODE=false
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
 CLERK_SECRET_KEY=
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/app
 NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/app
-
-# At least one provider for live proxy
-OPENAI_API_KEY=
-
-# Billing (optional for first smoke; needed for checkout test)
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
-STRIPE_PRICE_PRO=
-STRIPE_PRICE_TEAM=
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 ```
 
-### 4. First deploy checklist
-1. Deploy web service.
-2. Confirm `https://<domain>/api/health` → `{"status":"ok",...}`.
-3. Sign up via Clerk → `/app`.
-4. Create project → copy API key.
-5. Call proxy with real OpenAI traffic.
-6. Create a tiny hard budget → confirm HTTP **402**.
-7. (Optional) Stripe webhook endpoint: `https://<domain>/api/stripe/webhook`.
+Stripe is optional (self-host billing UI works without it; checkout shows a demo notice).
 
-### 5. Optional seed (demo data on staging)
-Only if you want charts before real traffic:
+### 3. Install and run
+```bash
+pnpm install
+pnpm db:migrate
+pnpm db:seed          # optional charts + demo API key
+pnpm dev              # http://localhost:3000
+```
+
+Production-style process on your host:
+
+```bash
+pnpm build
+pnpm start            # binds 0.0.0.0; set PORT if needed
+```
+
+### 4. Smoke checks
+```bash
+curl -s http://localhost:3000/api/health
+
+# Run ingest (no provider key)
+curl -s http://localhost:3000/api/v1/runs \
+  -H "authorization: Bearer al_live_…" \
+  -H "content-type: application/json" \
+  -d '{"agent":"local-bot","team":"platform"}'
+
+# Live proxy (needs OPENAI_API_KEY on the server)
+curl -s http://localhost:3000/api/v1/chat/completions \
+  -H "authorization: Bearer al_live_…" \
+  -H "content-type: application/json" \
+  -H "x-al-agent: local-bot" \
+  -d '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"ping"}]}'
+```
+
+See [README.md](README.md) Quick start and `/docs` in the app for the proxy SDK walkthrough.
+
+---
+
+## B) Public demo (Railway)
+
+The linked Railway project hosts **docs + demo UI** for people who want to click around without cloning.
+
+Configs in [`railway.toml`](railway.toml):
+
+- **Build:** `pnpm install && pnpm build`
+- **Pre-deploy:** `pnpm db:migrate`
+- **Start:** `pnpm start`
+- **Health:** `GET /api/health`
+
+Required env on the demo service:
+
+```bash
+DATABASE_URL=<Railway Postgres>
+NEXT_PUBLIC_APP_URL=https://<your-railway-domain>
+AGENTLEDGER_DEMO_MODE=true
+```
+
+Then seed once:
 
 ```bash
 railway run pnpm db:seed
 ```
 
-Do **not** leave `AGENTLEDGER_DEMO_MODE=true` if you want real Clerk auth.
+**Do not** set provider keys on the public demo (avoids turning it into an open proxy).  
+**Do not** use the Railway URL as `baseURL` for production agents — self-host instead.
+
+Clerk keys may remain on the service; demo mode bypasses them for `/app`.
 
 ---
 
-## B) Vercel (optional / later)
+## C) Vercel (optional marketing only)
 
-Config: [`apps/web/vercel.json`](apps/web/vercel.json).
-
-1. Import repo in Vercel → **Root Directory = `apps/web`**.
-2. Install/build commands come from `vercel.json` (run from monorepo root via `cd ../..`).
-3. Add env vars (same list as above).
-4. Attach an external Postgres (`DATABASE_URL` from Railway or Neon).
-5. Run migrations separately (Vercel does not use `railway.toml` preDeploy):
-   - local: `DATABASE_URL=... pnpm db:migrate`, or
-   - CI job on deploy.
-
-**Vercel note:** Hobby/serverless function limits can interrupt long streaming LLM responses. Fine for dashboard + short calls; weak for production proxy load.
+Config: [`apps/web/vercel.json`](apps/web/vercel.json). Suitable for a static marketing front door with an external Postgres. Serverless timeouts are a poor fit for the LLM proxy — keep the control plane self-hosted.
 
 ---
 
-## Production vs staging flags
+## Flag cheat sheet
 
-| Setting | Staging closed test | Public prod later |
-|---|---|---|
-| `AGENTLEDGER_DEMO_MODE` | `false` (or `true` only for no-Clerk UI peek) | `false` |
-| Clerk | Required for real auth test | Required |
-| Provider key | Required for proxy test | Required |
-| Stripe | Optional first day | Required to sell |
-| Rate limits | In-memory (ok for solo test) | Move to Redis/Upstash |
-
----
-
-## Smoke test commands (after deploy)
-
-```bash
-# Health
-curl -s https://<domain>/api/health
-
-# Open a run (no provider key needed)
-curl -s https://<domain>/api/v1/runs \
-  -H "authorization: Bearer al_live_…" \
-  -H "content-type: application/json" \
-  -d '{"agent":"staging-bot","team":"platform"}'
-
-# Live proxy (needs OPENAI_API_KEY on server)
-curl -s https://<domain>/api/v1/chat/completions \
-  -H "authorization: Bearer al_live_…" \
-  -H "content-type: application/json" \
-  -H "x-al-agent: staging-bot" \
-  -d '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"ping"}]}'
-```
+| Setting | Self-host (local) | Self-host (private multi-user) | Public Railway demo |
+|---|---|---|---|
+| `AGENTLEDGER_DEMO_MODE` | `true` | `false` | `true` |
+| Clerk | Optional | Required | Unused when demo on |
+| Provider key | For live proxy | For live proxy | Leave unset |
+| Stripe | Optional | Optional | Leave unset |

@@ -15,13 +15,25 @@ const links = [
   { href: "/app/settings", label: "Settings", icon: Settings },
 ];
 
+function activeHrefFor(pathname: string) {
+  let best: string | null = null;
+  for (const { href } of links) {
+    const matches =
+      pathname === href || (href !== "/app" && pathname.startsWith(`${href}/`));
+    if (!matches) continue;
+    if (!best || href.length > best.length) best = href;
+  }
+  return best;
+}
+
 export function AppSidebar({ pathname }: { pathname: string }) {
+  const activeHref = activeHrefFor(pathname);
   return (
     <aside className="flex h-full w-60 flex-col border-r border-[var(--al-line)] bg-[var(--al-panel)]/80 px-3 py-5 backdrop-blur">
       <BrandLockup href="/" markSize={28} className="mb-6 px-3 text-lg" />
       <nav className="flex flex-1 flex-col gap-1">
         {links.map((link) => {
-          const active = pathname === link.href || (link.href !== "/app" && pathname.startsWith(link.href));
+          const active = link.href === activeHref;
           const Icon = link.icon;
           return (
             <Link

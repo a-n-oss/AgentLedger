@@ -1,10 +1,10 @@
 # AgentLedger
 
-**The control plane for AI agent spend and actions.**
+**The control plane for AI agent spend and actions — self-host first.**
 
 AgentLedger sits between your apps and LLM providers. It attributes every call to an agent/team, enforces hard spend caps, and keeps an audit ledger — without being another trace debugger (Langfuse) or router (Portkey).
 
-If you have **no OpenAI/Anthropic/Google keys**, you can still run the full dashboard with seeded demo data. Provider keys are only required for the live LLM **proxy**.
+Run it on your own Postgres + Node host. The public Railway site is **docs + a seeded demo** only — not a production proxy. If you have **no OpenAI/Anthropic/Google keys**, you can still explore the dashboard with seed data; provider keys are only required for the live LLM **proxy** on your host.
 
 ---
 
@@ -392,9 +392,9 @@ You’ll see a real completion, `x-al-cost-usd` response header, and a new event
 
 ## Deploy
 
-For a closed real test, prefer **Railway** (web + Postgres). Vercel is fine later for the UI, but serverless timeouts are a poor fit for the LLM proxy.
+**Self-host** is the intended production path (Docker Compose Postgres + `pnpm`). The Railway deployment in this project is for **public docs + demo** only (`AGENTLEDGER_DEMO_MODE=true`, no provider keys).
 
-See **[DEPLOY.md](DEPLOY.md)** for platform choice, env vars, and smoke checks. Configs: [`railway.toml`](railway.toml), [`apps/web/vercel.json`](apps/web/vercel.json).
+See **[DEPLOY.md](DEPLOY.md)** for self-host steps, demo-site notes, and smoke checks. Configs: [`railway.toml`](railway.toml) (demo), [`apps/web/vercel.json`](apps/web/vercel.json) (optional marketing).
 
 ## Quick start
 

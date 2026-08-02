@@ -22,33 +22,28 @@ export function SiteHeader({
           contentClassName,
         )}
       >
-        <BrandLockup markSize={variant === "marketing" ? 34 : 28} className={variant === "marketing" ? "text-2xl" : "text-lg"} />
+        <BrandLockup
+          markSize={variant === "marketing" ? 34 : 28}
+          className={variant === "marketing" ? "text-2xl" : "text-lg"}
+        />
         <nav className="flex items-center gap-3 text-sm sm:gap-4">
+          <Link href="/docs" className="text-[var(--al-muted)] hover:text-[var(--al-ink)]">
+            Docs
+          </Link>
+          <Link href="/app" className="text-[var(--al-muted)] hover:text-[var(--al-ink)]">
+            Demo
+          </Link>
+          <ThemeToggle />
           {variant === "marketing" ? (
-            <>
-              <Link href="/docs" className="text-[var(--al-muted)] hover:text-[var(--al-ink)]">
-                Docs
-              </Link>
-              <Link href="/#pricing" className="text-[var(--al-muted)] hover:text-[var(--al-ink)]">
-                Pricing
-              </Link>
-              <ThemeToggle />
-              <Link href="/sign-in">
-                <Button size="sm" variant="accent">
-                  Sign in
-                </Button>
-              </Link>
-            </>
+            <Link href="/docs">
+              <Button size="sm" variant="accent">
+                Self-host
+              </Button>
+            </Link>
           ) : (
-            <>
-              <Link href="/docs" className="text-[var(--al-muted)] hover:text-[var(--al-ink)]">
-                Docs
-              </Link>
-              <Link href="/sign-in" className="text-[var(--al-muted)] hover:text-[var(--al-ink)]">
-                Sign in
-              </Link>
-              <ThemeToggle />
-            </>
+            <Link href="/docs" className="font-medium text-[var(--al-accent)] hover:underline">
+              Self-host
+            </Link>
           )}
         </nav>
       </div>

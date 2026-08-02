@@ -1,5 +1,5 @@
-# Recommended for AgentLedger staging: Railway
-# Web service + Postgres in one project (long-lived Node process for LLM proxy/streaming).
+# Public docs + demo only (not a production proxy).
+# Self-host for real traffic — see DEPLOY.md.
 
 [build]
 builder = "NIXPACKS"
