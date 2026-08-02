@@ -17,9 +17,9 @@ export default function HomePage() {
             Pricing
           </Link>
           <ThemeToggle />
-          <Link href="/app">
+          <Link href="/sign-in">
             <Button size="sm" variant="accent">
-              Open app
+              Sign in
             </Button>
           </Link>
         </nav>
