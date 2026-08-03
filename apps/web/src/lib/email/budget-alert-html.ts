@@ -36,11 +36,13 @@ export function buildBudgetAlertText(params: BudgetAlertEmailParams) {
 
 /**
  * Transactional HTML email for budget threshold alerts.
- * Table + inline styles for broad client support. Logo uses PNG apple-icon route.
+ * Table + inline styles for broad client support.
+ * Logo uses a static PNG under /public/brand (email clients often fail on
+ * Next.js dynamic icon routes like /apple-icon and on SVG).
  */
 export function buildBudgetAlertHtml(params: BudgetAlertEmailParams) {
   const base = params.appBaseUrl.replace(/\/$/, "");
-  const logoUrl = `${base}/apple-icon`;
+  const logoUrl = `${base}/brand/email-logo.png`;
   const budgetsUrl = `${base}/app/budgets`;
   const name = escapeHtml(params.budgetName);
   const org = params.organizationName ? escapeHtml(params.organizationName) : null;
