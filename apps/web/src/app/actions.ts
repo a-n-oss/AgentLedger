@@ -287,6 +287,17 @@ export async function createCheckoutSessionAction(plan: "pro" | "team") {
   });
   if (!organization) throw new Error("Org not found");
 
+  const planRank = { free: 0, pro: 1, team: 2 } as const;
+  const currentRank = planRank[organization.plan] ?? 0;
+  const targetRank = planRank[plan];
+  if (targetRank <= currentRank) {
+    throw new Error(
+      organization.plan === plan
+        ? `Already on the ${plan} plan — manage it from the customer portal`
+        : `Already on ${organization.plan}; use the customer portal to change plans`,
+    );
+  }
+
   let customerId = organization.stripeCustomerId;
   if (!customerId) {
     const customer = await stripe.customers.create({
