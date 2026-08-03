@@ -42,21 +42,32 @@ export default async function BillingPage({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <BillingActions stripeReady={ready} />
+          <BillingActions stripeReady={ready} currentPlan={plan.id} />
         </CardContent>
       </Card>
       <div className="grid gap-3 md:grid-cols-3">
-        {Object.values(PLANS).map((p) => (
-          <Card key={p.id}>
-            <CardHeader>
-              <CardTitle>{p.name}</CardTitle>
-              <CardDescription>${p.priceMonthlyUsd}/mo</CardDescription>
-            </CardHeader>
-            <CardContent className="text-sm text-[var(--al-muted)]">
-              {p.eventQuota.toLocaleString()} events · {p.maxProjects} projects
-            </CardContent>
-          </Card>
-        ))}
+        {Object.values(PLANS).map((p) => {
+          const current = p.id === plan.id;
+          return (
+            <Card
+              key={p.id}
+              className={current ? "border-[var(--al-accent)] ring-1 ring-[var(--al-accent)]" : undefined}
+            >
+              <CardHeader>
+                <CardTitle>
+                  {p.name}
+                  {current ? (
+                    <span className="ml-2 text-xs font-medium text-[var(--al-accent)]">Current</span>
+                  ) : null}
+                </CardTitle>
+                <CardDescription>${p.priceMonthlyUsd}/mo</CardDescription>
+              </CardHeader>
+              <CardContent className="text-sm text-[var(--al-muted)]">
+                {p.eventQuota.toLocaleString()} events · {p.maxProjects} projects
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );
