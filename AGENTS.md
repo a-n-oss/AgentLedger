@@ -7,6 +7,7 @@
 - Feature branches use the `cursor/` name prefix
 - Prefers custom branded sign-in/sign-up pages over default Clerk hosted UI
 - Brand mark should be monochrome SVG (`currentColor`) and always paired with the AgentLedger wordmark in nav/headers
+- Do not deploy via Railway CLI (`railway up`) unless the user explicitly overrides; rely on GitHub merge → Railway auto-deploy so CI failures are visible
 
 ## Learned Workspace Facts
 
