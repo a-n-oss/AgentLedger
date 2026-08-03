@@ -15,6 +15,13 @@
       "when": 1785712200000,
       "tag": "0001_provider_secrets",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785712800000,
+      "tag": "0002_provider_xai",
+      "breakpoints": true
     }
   ]
 }

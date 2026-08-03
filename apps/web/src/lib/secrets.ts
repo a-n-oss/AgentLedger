@@ -1,9 +1,10 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { providerSecrets } from "@agentledger/db";
+import type { ProviderId } from "@agentledger/shared";
 import { getDb } from "./db";
 
-export type ProviderId = "openai" | "anthropic" | "google";
+export type { ProviderId };
 
 function masterKeyBytes(): Buffer {
   const raw = process.env.AGENTLEDGER_SECRETS_KEY;

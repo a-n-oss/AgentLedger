@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 
 const PROVIDERS = [
-  { id: "openai", label: "OpenAI" },
-  { id: "anthropic", label: "Anthropic" },
-  { id: "google", label: "Google" },
+  { id: "xai", label: "xAI (Grok)", placeholder: "xai-…" },
+  { id: "openai", label: "OpenAI", placeholder: "sk-…" },
+  { id: "anthropic", label: "Anthropic", placeholder: "sk-ant-…" },
+  { id: "google", label: "Google", placeholder: "AIza…" },
 ] as const;
 
 export function ProviderKeysManager({
@@ -30,8 +31,9 @@ export function ProviderKeysManager({
           Provider keys (BYOK)
         </h2>
         <p className="mt-1 text-sm text-[var(--al-muted)]">
-          Encrypted at rest with <code>AGENTLEDGER_SECRETS_KEY</code>. The proxy uses the project key
-          first; self-host can fall back to server env vars.
+          Register your own upstream keys per project. Encrypted at rest with{" "}
+          <code>AGENTLEDGER_SECRETS_KEY</code>. The proxy prefers the project key, then optional
+          server env fallback. Grok models auto-route to xAI.
         </p>
       </div>
 
@@ -76,13 +78,13 @@ export function ProviderKeysManager({
       </ul>
 
       <form
-        className="grid gap-3 border-t border-[var(--al-line)] pt-4 md:grid-cols-[140px_1fr_auto]"
+        className="grid gap-3 border-t border-[var(--al-line)] pt-4 md:grid-cols-[160px_1fr_auto]"
         action={(fd) => startTransition(() => upsertProviderSecretAction(fd))}
       >
         <input type="hidden" name="projectId" value={projectId} />
         <div>
           <Label htmlFor="provider">Provider</Label>
-          <Select id="provider" name="provider" defaultValue="openai" className="mt-1" required>
+          <Select id="provider" name="provider" defaultValue="xai" className="mt-1" required>
             {PROVIDERS.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.label}
@@ -100,7 +102,7 @@ export function ProviderKeysManager({
             required
             minLength={8}
             className="mt-1 font-mono"
-            placeholder="sk-…"
+            placeholder="xai-… or sk-…"
             disabled={!secretsKeyConfigured}
           />
         </div>

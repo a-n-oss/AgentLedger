@@ -236,7 +236,12 @@ export async function upsertProviderSecretAction(formData: FormData) {
 
 export async function deleteProviderSecretAction(projectId: string, provider: string) {
   const session = await requireAppSession();
-  if (provider !== "openai" && provider !== "anthropic" && provider !== "google") {
+  if (
+    provider !== "openai" &&
+    provider !== "anthropic" &&
+    provider !== "google" &&
+    provider !== "xai"
+  ) {
     throw new Error("Invalid provider");
   }
   const db = getDb();

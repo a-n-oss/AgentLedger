@@ -52,6 +52,7 @@ AGENTLEDGER_SECRETS_KEY=
 
 # Optional single-tenant fallback if a project has no BYOK secret
 OPENAI_API_KEY=
+XAI_API_KEY=
 
 # Budget alert smoke (optional)
 RESEND_API_KEY=

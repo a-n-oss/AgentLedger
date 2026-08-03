@@ -1,5 +1,5 @@
 export type ModelPrice = {
-  provider: "openai" | "anthropic" | "google" | "unknown";
+  provider: "openai" | "anthropic" | "google" | "xai" | "unknown";
   model: string;
   inputPer1M: number;
   outputPer1M: number;
@@ -22,6 +22,11 @@ export const MODEL_PRICES: ModelPrice[] = [
   { provider: "anthropic", model: "claude-opus-4-20250514", inputPer1M: 15, outputPer1M: 75 },
   { provider: "google", model: "gemini-2.0-flash", inputPer1M: 0.1, outputPer1M: 0.4 },
   { provider: "google", model: "gemini-2.5-pro", inputPer1M: 1.25, outputPer1M: 10 },
+  { provider: "xai", model: "grok-4.5", inputPer1M: 2, outputPer1M: 6 },
+  { provider: "xai", model: "grok-4", inputPer1M: 3, outputPer1M: 15 },
+  { provider: "xai", model: "grok-3", inputPer1M: 3, outputPer1M: 15 },
+  { provider: "xai", model: "grok-3-mini", inputPer1M: 0.3, outputPer1M: 0.5 },
+  { provider: "xai", model: "grok-2", inputPer1M: 2, outputPer1M: 10 },
 ];
 
 const DEFAULT_PRICE: ModelPrice = {

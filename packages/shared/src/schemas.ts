@@ -72,9 +72,12 @@ export const CreateAlertChannelSchema = z
     }
   });
 
+export const PROVIDER_IDS = ["openai", "anthropic", "google", "xai"] as const;
+export type ProviderId = (typeof PROVIDER_IDS)[number];
+
 export const UpsertProviderSecretSchema = z.object({
   projectId: z.string().uuid(),
-  provider: z.enum(["openai", "anthropic", "google"]),
+  provider: z.enum(PROVIDER_IDS),
   secret: z
     .string()
     .trim()
