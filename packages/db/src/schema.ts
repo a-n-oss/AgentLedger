@@ -19,7 +19,7 @@ export const eventTypeEnum = pgEnum("event_type", ["llm", "tool", "mcp", "error"
 export const runStatusEnum = pgEnum("run_status", ["running", "completed", "failed", "cancelled"]);
 export const alertChannelTypeEnum = pgEnum("alert_channel_type", ["slack", "email"]);
 export const membershipRoleEnum = pgEnum("membership_role", ["owner", "admin", "member"]);
-export const providerEnum = pgEnum("provider", ["openai", "anthropic", "google"]);
+export const providerEnum = pgEnum("provider", ["openai", "anthropic", "google", "xai"]);
 
 export const organizations = pgTable("organizations", {
   id: uuid("id").primaryKey().defaultRandom(),

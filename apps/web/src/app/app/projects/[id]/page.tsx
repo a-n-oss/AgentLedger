@@ -31,7 +31,16 @@ export default async function ProjectDetailPage({
 {`const openai = new OpenAI({
   apiKey: "YOUR_AGENTLEDGER_KEY",
   baseURL: "${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/v1",
-  defaultHeaders: { "x-al-agent": "my-agent", "x-al-team": "platform" },
+  defaultHeaders: {
+    "x-al-agent": "my-agent",
+    "x-al-team": "platform",
+    // optional force: "x-al-provider": "xai"
+  },
+});
+// Grok models (e.g. grok-4.5) auto-route to your xAI BYOK key
+await openai.chat.completions.create({
+  model: "grok-4.5",
+  messages: [{ role: "user", content: "ping" }],
 });`}
           </pre>
         </CardContent>

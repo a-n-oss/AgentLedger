@@ -178,7 +178,7 @@ sequenceDiagram
 | `x-al-team` | Team label for chargeback |
 | `x-al-user` | End-user label |
 | `x-al-run-id` | Optional: attach proxy call to an SDK run |
-| `x-al-provider` | Optional force: `openai` \| `anthropic` \| `google` |
+| `x-al-provider` | Optional force: `openai` \| `anthropic` \| `google` \| `xai` |
 
 **Costing:** tokens × model price table in [`packages/shared/src/pricing.ts`](packages/shared/src/pricing.ts). Unknown models are estimated and flagged.
 
@@ -378,7 +378,7 @@ curl -s http://localhost:3000/api/v1/runs \
 
 ### What a provider key unlocks
 
-Paste an OpenAI key under the project’s **Provider keys (BYOK)** (needs `AGENTLEDGER_SECRETS_KEY`), or set `OPENAI_API_KEY=` as a self-host fallback, then:
+Paste an xAI (or OpenAI) key under the project’s **Provider keys (BYOK)** (needs `AGENTLEDGER_SECRETS_KEY`), or set `XAI_API_KEY=` / `OPENAI_API_KEY=` as a self-host fallback, then:
 
 ```bash
 curl -s http://localhost:3000/api/v1/chat/completions \
@@ -386,7 +386,7 @@ curl -s http://localhost:3000/api/v1/chat/completions \
   -H "content-type: application/json" \
   -H "x-al-agent: support-triage" \
   -H "x-al-team: support" \
-  -d '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"ping"}]}'
+  -d '{"model":"grok-4.5","messages":[{"role":"user","content":"ping"}]}'
 ```
 
 You’ll see a real completion, `x-al-cost-usd` response header, and a new event on the overview chart.
@@ -443,6 +443,7 @@ Open:
 | `OPENAI_API_KEY` | Optional fallback | Upstream OpenAI if no project BYOK |
 | `ANTHROPIC_API_KEY` | Optional fallback | Upstream Anthropic |
 | `GOOGLE_API_KEY` | Optional fallback | Upstream Google |
+| `XAI_API_KEY` | Optional fallback | Upstream xAI (Grok) if no project BYOK |
 | Clerk keys | Only if demo off | Real multi-user auth |
 | `NEXT_PUBLIC_CLERK_INVITE_ONLY` | Hosted | Hides public sign-up UI |
 | Stripe keys | Deferred | Checkout / portal / webhooks |

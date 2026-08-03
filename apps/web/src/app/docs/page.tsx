@@ -84,8 +84,10 @@ export default function DocsPage() {
               </pre>
             </li>
             <li>
-              Open a project → <strong>Provider keys (BYOK)</strong> → paste OpenAI / Anthropic /
-              Google key → Save. Only a hint like <code>…abcd</code> is shown afterward.
+              Open a project → <strong>Provider keys (BYOK)</strong> → paste xAI / OpenAI /
+              Anthropic / Google key → Save. Only a hint like <code>…abcd</code> is shown afterward.
+              Models containing <code>grok</code> auto-route to xAI (<code>https://api.x.ai/v1</code>
+              ).
             </li>
             <li>
               Proxy resolves keys in order: <strong>project BYOK</strong> → then optional env
@@ -120,8 +122,9 @@ NEXT_PUBLIC_CLERK_INVITE_ONLY=true`}
             4. Self-host env fallback
           </h2>
           <p className="mt-3 text-[var(--al-muted)]">
-            Single-tenant installs can skip the BYOK UI and set <code>OPENAI_API_KEY</code> (and/or
-            Anthropic / Google) on the server. Prefer BYOK when multiple teams share one AgentLedger.
+            Single-tenant installs can skip the BYOK UI and set <code>XAI_API_KEY</code> /{" "}
+            <code>OPENAI_API_KEY</code> (and/or Anthropic / Google) on the server. Prefer BYOK when
+            multiple teams share one AgentLedger.
           </p>
 
           <h2 className="mt-12 text-2xl font-semibold">5. Create a project + AgentLedger API key</h2>

@@ -17,6 +17,8 @@ describe("proxy helpers", () => {
     expect(detectProvider("claude-sonnet-4-20250514")).toBe("anthropic");
     expect(detectProvider("gemini-2.0-flash")).toBe("google");
     expect(detectProvider("gpt-4o")).toBe("openai");
+    expect(detectProvider("grok-4.5")).toBe("xai");
+    expect(detectProvider("gpt-4o", "xai")).toBe("xai");
   });
 
   it("extracts usage", () => {

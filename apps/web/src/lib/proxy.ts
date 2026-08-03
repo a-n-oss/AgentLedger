@@ -1,13 +1,21 @@
-import { calculateCostUsd } from "@agentledger/shared";
-import { getProviderSecretPlaintext, type ProviderId } from "./secrets";
+import { calculateCostUsd, type ProviderId } from "@agentledger/shared";
+import { getProviderSecretPlaintext } from "./secrets";
 
 export type ProxyProvider = ProviderId;
 
 export function detectProvider(model: string | undefined, explicit?: string | null): ProxyProvider {
-  if (explicit === "anthropic" || explicit === "google" || explicit === "openai") return explicit;
+  if (
+    explicit === "anthropic" ||
+    explicit === "google" ||
+    explicit === "openai" ||
+    explicit === "xai"
+  ) {
+    return explicit;
+  }
   const m = (model ?? "").toLowerCase();
   if (m.includes("claude")) return "anthropic";
   if (m.includes("gemini")) return "google";
+  if (m.includes("grok")) return "xai";
   return "openai";
 }
 
@@ -19,6 +27,8 @@ export function providerBaseUrl(provider: ProxyProvider) {
       return "https://api.anthropic.com/v1";
     case "google":
       return "https://generativelanguage.googleapis.com/v1beta/openai";
+    case "xai":
+      return "https://api.x.ai/v1";
     default: {
       const _exhaustive: never = provider;
       return _exhaustive;
@@ -34,6 +44,8 @@ function envProviderKey(provider: ProxyProvider): string | undefined {
       return process.env.ANTHROPIC_API_KEY;
     case "google":
       return process.env.GOOGLE_API_KEY;
+    case "xai":
+      return process.env.XAI_API_KEY;
     default: {
       const _exhaustive: never = provider;
       return _exhaustive;
@@ -75,6 +87,8 @@ export async function providerAuthHeaders(
   const key = await resolveProviderKey(provider, projectId);
   switch (provider) {
     case "openai":
+    case "xai":
+    case "google":
       return { authorization: `Bearer ${key}` };
     case "anthropic":
       return {
@@ -82,8 +96,6 @@ export async function providerAuthHeaders(
         "anthropic-version": "2023-06-01",
         authorization: `Bearer ${key}`,
       };
-    case "google":
-      return { authorization: `Bearer ${key}` };
     default: {
       const _exhaustive: never = provider;
       return _exhaustive;
