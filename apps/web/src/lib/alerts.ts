@@ -4,6 +4,14 @@ import { alertChannels } from "@agentledger/db";
 import { getDb } from "./db";
 import { inngest } from "./inngest";
 
+export type AlertDeliveryResult = {
+  message: string;
+  emailed: number;
+  slacked: number;
+  skipped: string[];
+  errors: string[];
+};
+
 export async function dispatchBudgetAlerts(params: {
   organizationId: string;
   budgetName: string;
@@ -29,7 +37,7 @@ export async function sendBudgetAlertsInline(params: {
   spentUsd: number;
   amountUsd: number;
   hard: boolean;
-}) {
+}): Promise<AlertDeliveryResult> {
   const db = getDb();
   const channels = await db.query.alertChannels.findMany({
     where: eq(alertChannels.organizationId, params.organizationId),
@@ -39,46 +47,73 @@ export async function sendBudgetAlertsInline(params: {
 
   let emailed = 0;
   let slacked = 0;
+  const skipped: string[] = [];
+  const errors: string[] = [];
 
   for (const channel of channels) {
-    if (!channel.enabled) continue;
+    if (!channel.enabled) {
+      skipped.push(`${channel.type}:${channel.target} (disabled)`);
+      continue;
+    }
     if (channel.type === "slack") {
       try {
-        await fetch(channel.target, {
+        const res = await fetch(channel.target, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ text: message }),
         });
+        if (!res.ok) {
+          errors.push(`Slack ${channel.target}: HTTP ${res.status}`);
+          continue;
+        }
         slacked += 1;
       } catch (err) {
-        console.error("Slack alert failed", err);
+        const detail = err instanceof Error ? err.message : "Slack failed";
+        console.error("Slack alert failed", detail);
+        errors.push(`Slack ${channel.target}: ${detail}`);
       }
     }
     if (channel.type === "email") {
       if (!process.env.RESEND_API_KEY) {
-        console.warn(
-          `[alert] Skipping email to ${channel.target}: RESEND_API_KEY is not configured`,
-        );
+        const note = `email ${channel.target}: RESEND_API_KEY is not configured`;
+        console.warn(`[alert] Skipping ${note}`);
+        skipped.push(note);
         continue;
       }
       try {
         const resend = new Resend(process.env.RESEND_API_KEY);
-        await resend.emails.send({
-          from: process.env.ALERT_FROM_EMAIL ?? "alerts@agentledger.dev",
+        const from = process.env.ALERT_FROM_EMAIL ?? "onboarding@resend.dev";
+        const { data, error } = await resend.emails.send({
+          from,
           to: channel.target,
           subject: `Budget alert: ${params.budgetName}`,
           text: message,
         });
+        if (error) {
+          const detail = error.message ?? "Resend error";
+          console.error("Email alert failed", detail);
+          errors.push(`Email ${channel.target}: ${detail}`);
+          continue;
+        }
+        if (!data?.id) {
+          errors.push(`Email ${channel.target}: no message id returned`);
+          continue;
+        }
         emailed += 1;
       } catch (err) {
-        console.error("Email alert failed", err);
+        const detail = err instanceof Error ? err.message : "Email failed";
+        console.error("Email alert failed", detail);
+        errors.push(`Email ${channel.target}: ${detail}`);
       }
     }
   }
 
   if (channels.length === 0) {
     console.info("[alert]", message);
+    skipped.push("no alert channels configured");
   } else if (emailed === 0 && slacked === 0) {
     console.info("[alert] No channels delivered:", message);
   }
+
+  return { message, emailed, slacked, skipped, errors };
 }

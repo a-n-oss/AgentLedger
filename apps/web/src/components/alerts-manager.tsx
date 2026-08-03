@@ -53,8 +53,10 @@ export function AlertsManager({
             startTransition(async () => {
               setTestNote(null);
               try {
-                await sendTestAlertAction();
-                setTestNote("Test alert dispatched to configured channels.");
+                const result = await sendTestAlertAction();
+                setTestNote(
+                  `Delivered: ${result.emailed} email(s), ${result.slacked} Slack.`,
+                );
               } catch (err) {
                 setTestNote(err instanceof Error ? err.message : "Test alert failed");
               }

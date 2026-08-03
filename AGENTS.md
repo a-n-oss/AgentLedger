@@ -12,7 +12,7 @@
 
 - This repo is AgentLedger — an AI agent ops and spend-control product (proxy, budgets, run ledger, dashboard); production path is self-host or private hosted with invite-only Clerk + BYOK
 - Monorepo layout: `apps/web` plus `packages/{db,shared,sdk}`, managed with pnpm
-- Stack centers on Next.js, Postgres (Docker Compose on port 5433 locally), Clerk for `/app`, and optional/deferred Stripe
+- Stack centers on Next.js, Postgres (Docker Compose on port 5433 locally), Clerk for `/app`, Stripe Checkout subscriptions, and Resend alerts
 - OpenAI-compatible proxy lives at `/api/v1` with agent/team attribution, cost logging, and hard budgets that return HTTP 402 when exceeded
 - Provider keys are per-project BYOK (AES-GCM via `AGENTLEDGER_SECRETS_KEY`) with optional env fallback (`OPENAI_API_KEY`); public Railway has neither
 - `AGENTLEDGER_DEMO_MODE=true` enables seeded `/demo` only; `/app` is always the live Clerk console

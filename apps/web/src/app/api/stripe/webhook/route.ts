@@ -2,15 +2,19 @@ import { eq } from "drizzle-orm";
 import { organizations, stripeEvents } from "@agentledger/db";
 import { PLANS, type PlanId } from "@agentledger/shared";
 import { getDb } from "@/lib/db";
-import { getStripe } from "@/lib/stripe";
+import { getStripe, planFromStripePrice } from "@/lib/stripe";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
+    return Response.json({ error: "Missing webhook config" }, { status: 400 });
+  }
+
   const stripe = getStripe();
   const signature = req.headers.get("stripe-signature");
-  if (!signature || !process.env.STRIPE_WEBHOOK_SECRET) {
-    return Response.json({ error: "Missing webhook config" }, { status: 400 });
+  if (!signature) {
+    return Response.json({ error: "Missing stripe-signature" }, { status: 400 });
   }
 
   const payload = await req.text();
@@ -36,16 +40,31 @@ export async function POST(req: Request) {
     case "checkout.session.completed": {
       const session = event.data.object;
       const organizationId = session.metadata?.organizationId;
-      const plan = session.metadata?.plan as PlanId | undefined;
-      if (organizationId && (plan === "pro" || plan === "team")) {
+      if (!organizationId) break;
+
+      let plan = planFromStripePrice(null, session.metadata?.plan);
+      let priceId: string | null = null;
+      const subscriptionId =
+        typeof session.subscription === "string" ? session.subscription : null;
+
+      if (subscriptionId) {
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        priceId = subscription.items.data[0]?.price.id ?? null;
+        plan =
+          plan ??
+          planFromStripePrice(priceId, subscription.metadata?.plan) ??
+          planFromStripePrice(priceId, session.metadata?.plan);
+      }
+
+      if (plan === "pro" || plan === "team") {
         await db
           .update(organizations)
           .set({
             plan,
             eventQuota: PLANS[plan].eventQuota,
-            stripeSubscriptionId:
-              typeof session.subscription === "string" ? session.subscription : null,
+            stripeSubscriptionId: subscriptionId,
             stripeCustomerId: typeof session.customer === "string" ? session.customer : null,
+            stripePriceId: priceId,
             updatedAt: new Date(),
           })
           .where(eq(organizations.id, organizationId));
@@ -57,6 +76,7 @@ export async function POST(req: Request) {
       const subscription = event.data.object;
       const organizationId = subscription.metadata?.organizationId;
       if (!organizationId) break;
+
       if (event.type === "customer.subscription.deleted" || subscription.status === "canceled") {
         await db
           .update(organizations)
@@ -69,18 +89,21 @@ export async function POST(req: Request) {
           })
           .where(eq(organizations.id, organizationId));
       } else {
-        const plan = (subscription.metadata?.plan as PlanId | undefined) ?? "pro";
-        const entitlements = plan === "team" ? PLANS.team : PLANS.pro;
-        await db
-          .update(organizations)
-          .set({
-            plan: entitlements.id,
-            eventQuota: entitlements.eventQuota,
-            stripeSubscriptionId: subscription.id,
-            stripePriceId: subscription.items.data[0]?.price.id ?? null,
-            updatedAt: new Date(),
-          })
-          .where(eq(organizations.id, organizationId));
+        const priceId = subscription.items.data[0]?.price.id ?? null;
+        const plan: PlanId =
+          planFromStripePrice(priceId, subscription.metadata?.plan) ?? "pro";
+        if (plan === "pro" || plan === "team") {
+          await db
+            .update(organizations)
+            .set({
+              plan,
+              eventQuota: PLANS[plan].eventQuota,
+              stripeSubscriptionId: subscription.id,
+              stripePriceId: priceId,
+              updatedAt: new Date(),
+            })
+            .where(eq(organizations.id, organizationId));
+        }
       }
       break;
     }

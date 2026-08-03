@@ -172,11 +172,25 @@ NEXT_PUBLIC_CLERK_INVITE_ONLY=true`}
             entitlements), the proxy returns HTTP <strong>402</strong>.
           </p>
 
-          <h2 className="mt-12 text-2xl font-semibold">Billing note</h2>
-          <p className="mt-3 text-[var(--al-muted)]">
-            Stripe subscription tiers are deferred while the product is BYOK-first. The billing page
-            may show a demo notice without Stripe keys.
-          </p>
+          <h2 className="mt-12 text-2xl font-semibold">8. Stripe subscriptions</h2>
+          <ol className="mt-3 list-decimal space-y-2 pl-5 text-[var(--al-muted)]">
+            <li>
+              Set <code>STRIPE_SECRET_KEY</code>, <code>STRIPE_PRICE_PRO</code>,{" "}
+              <code>STRIPE_PRICE_TEAM</code>, and <code>STRIPE_WEBHOOK_SECRET</code>.
+            </li>
+            <li>
+              Webhook URL: <code>/api/stripe/webhook</code> (checkout completed + subscription
+              updated/deleted).
+            </li>
+            <li>
+              Enable Customer Portal in the Stripe Dashboard (test mode for smoke).
+            </li>
+            <li>
+              In <Link href="/app/settings/billing" className="font-medium text-[var(--al-accent)] underline">Billing</Link>
+              , upgrade with test card <code>4242 4242 4242 4242</code> — plan should update after the
+              webhook.
+            </li>
+          </ol>
 
           <h2 className="mt-12 text-2xl font-semibold">More</h2>
           <p className="mt-3 text-[var(--al-muted)]">

@@ -7,7 +7,7 @@ AgentLedger is designed to run as **your** control plane. Use **BYOK** (encrypte
 | **A) Self-host / private hosted** | Production: Postgres + invite-only Clerk + BYOK (or env fallback); `/app` |
 | **B) Public Railway** | Docs + seeded UI at `/demo` only — no provider secrets |
 
-Stripe subscription tiers are deferred while BYOK is the primary model.
+Stripe Checkout (Pro/Team) and Resend budget alerts are supported on private hosted installs.
 
 ---
 
@@ -54,12 +54,28 @@ AGENTLEDGER_SECRETS_KEY=
 OPENAI_API_KEY=
 XAI_API_KEY=
 
-# Budget alert smoke (optional)
+# Budget alerts (Resend)
 RESEND_API_KEY=
-ALERT_FROM_EMAIL=alerts@yourdomain.com
+ALERT_FROM_EMAIL=onboarding@resend.dev   # or your verified domain sender
+
+# Stripe subscriptions (sandbox or live)
+STRIPE_SECRET_KEY=sk_test_…
+STRIPE_WEBHOOK_SECRET=whsec_…
+STRIPE_PRICE_PRO=price_…
+STRIPE_PRICE_TEAM=price_…
+NEXT_PUBLIC_APP_URL=https://your-host
 ```
 
 In [Clerk Dashboard](https://dashboard.clerk.com): disable public sign-ups / use invitations only.
+
+### Stripe setup (sandbox)
+1. Create Pro ($99/mo) and Team ($299/mo) products/prices (or use Stripe MCP / Dashboard).
+2. Set `STRIPE_PRICE_PRO` / `STRIPE_PRICE_TEAM` to those Price IDs.
+3. Create a webhook endpoint → `https://<host>/api/stripe/webhook` for:
+   `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`.
+4. Paste the webhook signing secret into `STRIPE_WEBHOOK_SECRET`.
+5. Enable the [Customer Portal](https://dashboard.stripe.com/test/settings/billing/portal) (test mode).
+6. Use Stripe test card `4242 4242 4242 4242` in Checkout.
 
 ### 3. Install and run
 ```bash
@@ -122,4 +138,5 @@ Config: [`apps/web/vercel.json`](apps/web/vercel.json). Keep the LLM proxy on a 
 | `NEXT_PUBLIC_CLERK_INVITE_ONLY` | — | `true` | — |
 | `AGENTLEDGER_SECRETS_KEY` | For BYOK UI | Required for BYOK | Leave unset |
 | Provider key | BYOK or env | BYOK preferred | Leave unset |
-| Stripe | Deferred | Deferred | Leave unset |
+| Stripe | Optional | Recommended | Optional for billing smoke |
+| Resend | Optional | For email alerts | Optional |

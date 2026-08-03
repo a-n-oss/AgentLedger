@@ -446,7 +446,7 @@ Open:
 | `XAI_API_KEY` | Optional fallback | Upstream xAI (Grok) if no project BYOK |
 | Clerk keys | Only if demo off | Real multi-user auth |
 | `NEXT_PUBLIC_CLERK_INVITE_ONLY` | Hosted | Hides public sign-up UI |
-| Stripe keys | Deferred | Checkout / portal / webhooks |
+| Stripe keys | For subscriptions | Checkout / portal / webhooks |
 | `RESEND_API_KEY` | Optional | Email budget alerts (+ test send on `/app/alerts`) |
 | `INNGEST_*` | Optional | Async alert delivery |
 
