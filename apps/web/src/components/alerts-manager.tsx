@@ -52,20 +52,28 @@ export function AlertsManager({
           onClick={() =>
             startTransition(async () => {
               setTestNote(null);
-              try {
-                const result = await sendTestAlertAction();
-                setTestNote(
-                  `Delivered: ${result.emailed} email(s), ${result.slacked} Slack.`,
-                );
-              } catch (err) {
-                setTestNote(err instanceof Error ? err.message : "Test alert failed");
+              const result = await sendTestAlertAction();
+              if (!result.ok) {
+                setTestNote(result.error);
+                return;
               }
+              setTestNote(`Delivered: ${result.emailed} email(s), ${result.slacked} Slack.`);
             })
           }
         >
           Send test alert
         </Button>
-        {testNote ? <p className="text-sm text-[var(--al-muted)]">{testNote}</p> : null}
+        {testNote ? (
+          <p
+            className={
+              testNote.startsWith("Delivered:")
+                ? "text-sm text-[var(--al-muted)]"
+                : "text-sm text-[var(--al-danger)]"
+            }
+          >
+            {testNote}
+          </p>
+        ) : null}
       </div>
 
       <ul className="space-y-2">
