@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import type { PlanId } from "@agentledger/shared";
 
 let stripe: Stripe | null = null;
 
@@ -12,7 +13,23 @@ export function getStripe() {
   return stripe;
 }
 
+export function stripeConfigured() {
+  return Boolean(
+    process.env.STRIPE_SECRET_KEY &&
+      process.env.STRIPE_PRICE_PRO &&
+      process.env.STRIPE_PRICE_TEAM,
+  );
+}
+
 export function appUrl(path = "") {
   const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   return `${base.replace(/\/$/, "")}${path}`;
+}
+
+/** Map a Stripe Price ID (or metadata.plan) to an app plan. */
+export function planFromStripePrice(priceId: string | null | undefined, metadataPlan?: string | null): PlanId | null {
+  if (metadataPlan === "pro" || metadataPlan === "team") return metadataPlan;
+  if (priceId && priceId === process.env.STRIPE_PRICE_PRO) return "pro";
+  if (priceId && priceId === process.env.STRIPE_PRICE_TEAM) return "team";
+  return null;
 }

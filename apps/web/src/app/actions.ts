@@ -29,7 +29,7 @@ import {
   listProviderSecretHints,
   secretsKeyConfigured,
 } from "@/lib/secrets";
-import { appUrl, getStripe } from "@/lib/stripe";
+import { appUrl, getStripe, stripeConfigured } from "@/lib/stripe";
 
 export async function createProjectAction(formData: FormData) {
   const session = await requireAppSession();
@@ -175,7 +175,7 @@ export async function deleteAlertChannelAction(id: string) {
 
 export async function sendTestAlertAction() {
   const session = await requireAppSession();
-  await sendBudgetAlertsInline({
+  const result = await sendBudgetAlertsInline({
     organizationId: session.orgId,
     budgetName: "Test alert",
     threshold: 80,
@@ -184,7 +184,15 @@ export async function sendTestAlertAction() {
     hard: false,
   });
   revalidateConsole("/alerts");
-  return { ok: true as const };
+  if (result.emailed === 0 && result.slacked === 0) {
+    const detail = [...result.errors, ...result.skipped].join("; ") || "No channels delivered";
+    throw new Error(detail);
+  }
+  return {
+    ok: true as const,
+    emailed: result.emailed,
+    slacked: result.slacked,
+  };
 }
 
 export async function upsertProviderSecretAction(formData: FormData) {
@@ -260,13 +268,18 @@ export async function deleteProviderSecretAction(projectId: string, provider: st
 
 export async function createCheckoutSessionAction(plan: "pro" | "team") {
   const session = await requireAppSession();
-  if (isDemoSession(session) && !process.env.STRIPE_SECRET_KEY) {
-    return { url: `${session.surface === "demo" ? "/demo" : "/app"}/settings/billing?demo=1` };
+  const billingBase = session.surface === "demo" ? "/demo" : "/app";
+
+  if (isDemoSession(session)) {
+    return { url: `${billingBase}/settings/billing?demo=1` };
+  }
+  if (!stripeConfigured()) {
+    throw new Error(
+      "Stripe is not fully configured. Set STRIPE_SECRET_KEY, STRIPE_PRICE_PRO, and STRIPE_PRICE_TEAM.",
+    );
   }
 
-  const priceId = plan === "pro" ? process.env.STRIPE_PRICE_PRO : process.env.STRIPE_PRICE_TEAM;
-  if (!priceId) throw new Error("Stripe price not configured");
-
+  const priceId = plan === "pro" ? process.env.STRIPE_PRICE_PRO! : process.env.STRIPE_PRICE_TEAM!;
   const stripe = getStripe();
   const db = getDb();
   const organization = await db.query.organizations.findFirst({
@@ -297,28 +310,37 @@ export async function createCheckoutSessionAction(plan: "pro" | "team") {
     mode: "subscription",
     customer: customerId,
     line_items: lineItems,
-    success_url: appUrl("/app/settings/billing?success=1"),
-    cancel_url: appUrl("/app/settings/billing?canceled=1"),
+    allow_promotion_codes: true,
+    success_url: appUrl(`${billingBase}/settings/billing?success=1`),
+    cancel_url: appUrl(`${billingBase}/settings/billing?canceled=1`),
     metadata: { organizationId: session.orgId, plan },
     subscription_data: {
       metadata: { organizationId: session.orgId, plan },
     },
   });
 
+  if (!checkout.url) throw new Error("Stripe Checkout did not return a URL");
   return { url: checkout.url };
 }
 
 export async function createPortalSessionAction() {
   const session = await requireAppSession();
   const billingBase = session.surface === "demo" ? "/demo" : "/app";
-  if (isDemoSession(session) && !process.env.STRIPE_SECRET_KEY) {
+
+  if (isDemoSession(session)) {
     return { url: `${billingBase}/settings/billing?demo=1` };
   }
+  if (!process.env.STRIPE_SECRET_KEY) {
+    throw new Error("STRIPE_SECRET_KEY is not configured");
+  }
+
   const db = getDb();
   const organization = await db.query.organizations.findFirst({
     where: eq(organizations.id, session.orgId),
   });
-  if (!organization?.stripeCustomerId) throw new Error("No Stripe customer");
+  if (!organization?.stripeCustomerId) {
+    throw new Error("No Stripe customer yet — upgrade to Pro or Team first");
+  }
   const stripe = getStripe();
   const portal = await stripe.billingPortal.sessions.create({
     customer: organization.stripeCustomerId,
