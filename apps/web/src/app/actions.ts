@@ -175,24 +175,30 @@ export async function deleteAlertChannelAction(id: string) {
 
 export async function sendTestAlertAction() {
   const session = await requireAppSession();
-  const result = await sendBudgetAlertsInline({
-    organizationId: session.orgId,
-    budgetName: "Test alert",
-    threshold: 80,
-    spentUsd: 80,
-    amountUsd: 100,
-    hard: false,
-  });
-  revalidateConsole("/alerts");
-  if (result.emailed === 0 && result.slacked === 0) {
-    const detail = [...result.errors, ...result.skipped].join("; ") || "No channels delivered";
-    throw new Error(detail);
+  try {
+    const result = await sendBudgetAlertsInline({
+      organizationId: session.orgId,
+      budgetName: "Test alert",
+      threshold: 80,
+      spentUsd: 80,
+      amountUsd: 100,
+      hard: false,
+    });
+    if (result.emailed === 0 && result.slacked === 0) {
+      const detail = [...result.errors, ...result.skipped].join("; ") || "No channels delivered";
+      return { ok: false as const, error: detail };
+    }
+    return {
+      ok: true as const,
+      emailed: result.emailed,
+      slacked: result.slacked,
+    };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Test alert failed",
+    };
   }
-  return {
-    ok: true as const,
-    emailed: result.emailed,
-    slacked: result.slacked,
-  };
 }
 
 export async function upsertProviderSecretAction(formData: FormData) {
