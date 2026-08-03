@@ -7,7 +7,11 @@ export const metadata: Metadata = {
   description:
     "Hard budgets, agent-run ledgers, chargeback, and audit export for production AI agents.",
   icons: {
-    icon: [{ url: "/brand/agentledger-mark.svg", type: "image/svg+xml" }],
+    icon: [
+      { url: "/brand/favicon.svg", type: "image/svg+xml" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: [{ url: "/apple-icon", type: "image/png" }],
   },
 };
 
