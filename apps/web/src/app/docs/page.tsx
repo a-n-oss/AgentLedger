@@ -171,6 +171,11 @@ NEXT_PUBLIC_CLERK_INVITE_ONLY=true`}
               it.
             </li>
           </ol>
+          <p className="mt-3 text-[var(--al-muted)]">
+            Alert HTML embeds a <strong>static PNG</strong> logo from{" "}
+            <code>/brand/email-logo.png</code> (served from <code>NEXT_PUBLIC_APP_URL</code>). Email
+            clients often fail on SVG or Next.js dynamic icon routes.
+          </p>
 
           <h2 className="mt-12 text-2xl font-semibold">7. Hard budgets</h2>
           <p className="mt-3 text-[var(--al-muted)]">
@@ -181,9 +186,43 @@ NEXT_PUBLIC_CLERK_INVITE_ONLY=true`}
           <h2 className="mt-12 text-2xl font-semibold">8. Billing (deferred)</h2>
           <p className="mt-3 text-[var(--al-muted)]">
             Stripe Checkout / Customer Portal are <strong>not</strong> offered yet. Entitlements are
-            unlocked for self-host. Webhook and checkout code remain inert unless you set{" "}
-            <code>AGENTLEDGER_BILLING_ENABLED=true</code> (not recommended until monetization
-            returns).
+            unlocked for self-host. Webhook and checkout code remain in the repo but inert unless you
+            set <code>AGENTLEDGER_BILLING_ENABLED=true</code> plus Stripe price/secret vars on a paid
+            host. Leave that flag unset on self-host and on Railway smoke. Reactivation steps:{" "}
+            <a
+              href="https://github.com/a-n-oss/AgentLedger/blob/main/DEPLOY.md"
+              className="font-medium text-[var(--al-accent)] underline"
+            >
+              DEPLOY.md
+            </a>{" "}
+            and{" "}
+            <a
+              href="https://github.com/a-n-oss/AgentLedger/blob/main/scripts/stripe-sandbox.md"
+              className="font-medium text-[var(--al-accent)] underline"
+            >
+              scripts/stripe-sandbox.md
+            </a>
+            .
+          </p>
+
+          <h2 className="mt-12 text-2xl font-semibold">9. Open source</h2>
+          <p className="mt-3 text-[var(--al-muted)]">
+            AgentLedger is MIT-licensed. Self-host is free; hosted monetization is an optional
+            deployment flag, not a license restriction. See the repo{" "}
+            <a
+              href="https://github.com/a-n-oss/AgentLedger/blob/main/LICENSE"
+              className="font-medium text-[var(--al-accent)] underline"
+            >
+              LICENSE
+            </a>{" "}
+            and{" "}
+            <a
+              href="https://github.com/a-n-oss/AgentLedger/blob/main/CONTRIBUTING.md"
+              className="font-medium text-[var(--al-accent)] underline"
+            >
+              CONTRIBUTING.md
+            </a>
+            .
           </p>
 
           <h2 className="mt-12 text-2xl font-semibold">More</h2>
@@ -195,7 +234,7 @@ NEXT_PUBLIC_CLERK_INVITE_ONLY=true`}
             >
               DEPLOY.md
             </a>
-            .
+            . Railway: public app service, private Postgres; ship via GitHub merge → auto-deploy.
           </p>
         </article>
       </div>

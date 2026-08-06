@@ -2,9 +2,12 @@ node_modules
 .next
 .turbo
 dist
+# Secrets — never commit. Use apps/web/.env.example as the template.
 .env
-.env.local
-.env*.local
+.env.*
+!.env.example
+!**/.env.example
+*.pem
 *.log
 .DS_Store
 coverage

@@ -6,6 +6,13 @@ AgentLedger sits between your apps and LLM providers. It attributes every call t
 
 Run it on your own Postgres + Node host with invite-only Clerk and BYOK. SaaS subscriptions are deferred — self-host installs unlock full entitlements without Stripe. Optional seeded `/demo` is local-only when `AGENTLEDGER_DEMO_MODE=true`. Provider keys are only required for the live LLM **proxy**.
 
+| | Self-host / private deploy (today) | Hosted SaaS billing (later) |
+|---|---|---|
+| Cost to run the software | Free (MIT) — you pay infra + providers | Optional paid plans when you flip billing on |
+| Entitlements | Full Team-level features unlocked | Plan catalog in `packages/shared` enforced via Stripe |
+| Auth | Invite-only Clerk (`pnpm invite`) | Same stack; public sign-up is a product choice |
+| Billing flag | `AGENTLEDGER_BILLING_ENABLED` **unset** | Set `true` + Stripe vars (see [Billing](#billing-and-plans)) |
+
 ---
 
 ## Table of contents
@@ -16,7 +23,7 @@ Run it on your own Postgres + Node host with invite-only Clerk and BYOK. SaaS su
 4. [How a request flows](#how-a-request-flows)
 5. [How agent runs work (SDK)](#how-agent-runs-work-sdk)
 6. [Budgets and hard stops](#budgets-and-hard-stops)
-7. [Auth, orgs, and demo mode](#auth-orgs-and-demo-mode)
+7. [Auth, orgs, and demo](#auth-orgs-and-demo)
 8. [Billing and plans](#billing-and-plans)
 9. [Alerts](#alerts)
 10. [Explore without provider keys](#explore-without-provider-keys)
@@ -26,6 +33,8 @@ Run it on your own Postgres + Node host with invite-only Clerk and BYOK. SaaS su
 14. [API reference](#api-reference)
 15. [UI map](#ui-map)
 16. [Verification](#verification)
+17. [Contributing](#contributing)
+18. [License](#license)
 
 ---
 
@@ -60,15 +69,15 @@ Your app / agent
 ┌─────────────────────────────────────┐
 │           AgentLedger               │
 │  1. Validate API key                │
-│  2. Rate limit + plan quota         │
+│  2. Rate limit (+ plan quota if billing on) │
 │  3. Check hard budgets              │
-│  4a. PROXY: forward to OpenAI/etc.  │  ← needs provider keys on server
+│  4a. PROXY: forward to OpenAI/xAI/… │  ← needs BYOK or env provider keys
 │  4b. SDK:  record run/span only     │  ← works without provider keys
 │  5. Write event + update spend      │
 └─────────────────────────────────────┘
       │
       ▼
-  Dashboard / alerts / Stripe
+  Dashboard / alerts  (+ Stripe only if billing enabled)
 ```
 
 **Two ways data enters the system:**
@@ -106,8 +115,8 @@ flowchart TB
   end
 
   subgraph external [External]
-    Providers[OpenAI / Anthropic / Google]
-    Stripe[Stripe]
+    Providers[OpenAI / Anthropic / Google / xAI]
+    Stripe[Stripe - deferred]
     Slack[Slack / Resend]
   end
 
@@ -121,7 +130,7 @@ flowchart TB
   Proxy --> Shared
   RunsAPI --> Shared
   DB --> Tables
-  Stripe --> StripeWH
+  Stripe -.-> StripeWH
   InngestAPI --> Slack
 ```
 
@@ -130,11 +139,11 @@ flowchart TB
 | Layer | Choice |
 |---|---|
 | App | Next.js 15 App Router + TypeScript |
-| Auth | Clerk (or demo mode) |
+| Auth | Clerk (`/app`); optional local `/demo` when demo mode on |
 | DB | Postgres + Drizzle ORM |
-| Billing | Stripe Checkout + Customer Portal |
+| Billing | Stripe code present; **gated** by `AGENTLEDGER_BILLING_ENABLED` (off by default) |
 | Jobs | Inngest (optional; alerts also run inline) |
-| Email | Resend (optional) |
+| Email | Resend (optional; branded HTML + static PNG logo) |
 
 ---
 
@@ -284,7 +293,7 @@ Budget {
 |---|---|
 | Soft budget crossed | Alerts fire; traffic continues |
 | Hard budget crossed (self-host entitlements unlocked) | Proxy / `openRun` return **402** |
-| SaaS plan paywalls | Deferred — not enforced while billing is off |
+| SaaS plan paywalls / free-tier quotas | Deferred — not enforced while billing is off |
 
 Spend is tracked in `budget_usages` per period window (UTC day or month).
 
@@ -311,9 +320,27 @@ flowchart LR
 
 ## Billing and plans
 
-SaaS Stripe Checkout is **deferred** (`AGENTLEDGER_BILLING_ENABLED` unset). Self-host / private installs resolve **Team-level entitlements** for every org so hard budgets, audit export, and related features work without a paid plan.
+SaaS Stripe Checkout is **deferred** (`AGENTLEDGER_BILLING_ENABLED` unset / not `true`). Self-host / private installs resolve **Team-level entitlements** for every org so hard budgets, audit export, and related features work without a paid plan.
 
-Plan definitions remain in [`packages/shared/src/plans.ts`](packages/shared/src/plans.ts) for a future monetization path. Checkout/portal server actions refuse with “billing not available”; the Stripe webhook returns early when billing is disabled.
+Plan definitions remain in [`packages/shared/src/plans.ts`](packages/shared/src/plans.ts). Checkout/portal server actions refuse with “billing not available”; the Stripe webhook returns early when billing is disabled. Gating lives in [`apps/web/src/lib/billing.ts`](apps/web/src/lib/billing.ts).
+
+### Free self-host vs future hosted monetization
+
+- **Today (OSS / self-host):** MIT-licensed core. Run Postgres + the Next.js app yourself (or private hosted). No Stripe required. Full entitlements.
+- **Later (optional hosted billing):** Keep the same codebase. Turn on Stripe Checkout / Customer Portal / plan paywalls only where you operate a paid host. Self-hosters can leave the flag unset forever.
+
+### Reactivating billing later (do not enable on Railway smoke yet)
+
+1. Create Stripe products/prices (sandbox notes: [`scripts/stripe-sandbox.md`](scripts/stripe-sandbox.md)).
+2. Set env on the **paid host only**:
+   - `AGENTLEDGER_BILLING_ENABLED=true`
+   - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
+   - `STRIPE_PRICE_PRO`, `STRIPE_PRICE_TEAM` (+ metered price if used)
+   - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` if the UI needs it
+3. Point a Stripe webhook at `https://<host>/api/stripe/webhook` for `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`.
+4. Redeploy. Entitlements then follow each org’s Stripe-synced plan instead of unlocked Team.
+
+Leave `AGENTLEDGER_BILLING_ENABLED` unset on self-host and on the current invite-only Railway smoke environment.
 
 ---
 
@@ -325,7 +352,7 @@ When spend crosses 50% / 80% / 100% of a budget:
 2. Otherwise send inline to configured Slack webhooks / Resend emails.
 3. If no channels exist → log to server console.
 
-Configure channels under **App → Alerts**.
+Email HTML uses a **static PNG** brand mark at [`apps/web/public/brand/email-logo.png`](apps/web/public/brand/email-logo.png) (email clients often fail on SVG / Next.js dynamic icon routes). Configure channels under **App → Alerts**.
 
 ---
 
@@ -481,7 +508,7 @@ docker-compose.yml        Local Postgres (:5433)
 | Code | Meaning |
 |---|---|
 | 401 | Missing/invalid API key |
-| 402 | Hard budget or free-plan quota exceeded |
+| 402 | Hard budget exceeded (or plan quota when billing is enabled) |
 | 429 | Rate limited |
 | 503 | Provider API key not configured on server |
 
@@ -517,6 +544,12 @@ pnpm --filter @agentledger/web test:e2e   # Playwright (dev server)
 
 ---
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). PRs welcome; keep self-host as the primary path and do not turn on billing for shared smoke hosts.
+
+---
+
 ## License
 
-Proprietary — all rights reserved.
+[MIT](LICENSE) — free to use, modify, and self-host. Optional hosted monetization is a deployment configuration (`AGENTLEDGER_BILLING_ENABLED`), not a restriction on the open-source core.

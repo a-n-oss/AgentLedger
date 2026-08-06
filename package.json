@@ -1,6 +1,7 @@
 {
   "name": "agentledger",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "dev": "pnpm --filter @agentledger/web dev",
     "build": "pnpm --filter @agentledger/shared build && pnpm --filter @agentledger/db build && pnpm --filter @agentledger/sdk build && pnpm --filter @agentledger/web build",
