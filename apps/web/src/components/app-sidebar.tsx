@@ -2,7 +2,6 @@ import {
   BadgeCheck,
   Boxes,
   Gauge,
-  KeyRound,
   Receipt,
   ScrollText,
   Settings,
@@ -21,7 +20,6 @@ const linkDefs = [
   { path: "/budgets", label: "Budgets", icon: ShieldAlert },
   { path: "/alerts", label: "Alerts", icon: BadgeCheck },
   { path: "/export", label: "Export", icon: Receipt },
-  { path: "/settings/billing", label: "Billing", icon: KeyRound },
   { path: "/settings", label: "Settings", icon: Settings },
 ] as const;
 

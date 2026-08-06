@@ -13,15 +13,19 @@ const envBlock = `cp apps/web/.env.example apps/web/.env.local
 # Self-host single-tenant fallback (optional if you use BYOK UI):
 #   OPENAI_API_KEY=sk-...
 
-# Invite-only hosted auth:
+# Invite-only hosted auth (recommended):
 #   AGENTLEDGER_DEMO_MODE=false
 #   NEXT_PUBLIC_CLERK_INVITE_ONLY=true
 #   + Clerk keys`;
 
 const installBlock = `pnpm install
 pnpm db:migrate
-pnpm db:seed   # optional demo charts
+pnpm db:seed   # optional sample charts
 pnpm dev       # http://localhost:3000`;
+
+const inviteBlock = `# Load CLERK_SECRET_KEY from apps/web/.env.local
+pnpm invite -- user@example.com
+pnpm invite -- alice@acme.com bob@acme.com`;
 
 const openaiBlock = `import OpenAI from "openai";
 
@@ -48,14 +52,10 @@ export default function DocsPage() {
             AgentLedger docs
           </h1>
           <p className="mt-4 text-lg text-[var(--al-muted)]">
-            Self-host or run an invite-only hosted control plane with{" "}
-            <strong>BYOK</strong> (bring your own provider keys). The public Railway site is docs
-            plus a{" "}
-            <Link href="/demo" className="font-medium text-[var(--al-accent)] underline">
-              seeded demo
-            </Link>{" "}
-            at <code>/demo</code>. Live console is <code>/app</code> (Clerk). Stripe tiers are
-            deferred while on BYOK.
+            Self-host or run a private invite-only control plane with <strong>BYOK</strong> (bring
+            your own provider keys). Live console is <code>/app</code> (Clerk). SaaS subscriptions
+            are deferred — installs unlock full entitlements without Stripe. Optional local{" "}
+            <code>/demo</code> exists only when <code>AGENTLEDGER_DEMO_MODE=true</code>.
           </p>
 
           <h2 className="mt-12 text-2xl font-semibold">1. Quick start (self-host)</h2>
@@ -97,10 +97,10 @@ export default function DocsPage() {
           </ol>
 
           <h2 id="invite-only" className="mt-12 text-2xl font-semibold">
-            3. Invite-only sign-up (hosted)
+            3. Invite-only sign-up
           </h2>
           <p className="mt-3 text-[var(--al-muted)]">
-            For a private hosted instance, disable public registration in Clerk and set:
+            Disable public registration in Clerk and set:
           </p>
           <pre className="al-code mt-4 overflow-x-auto rounded-xl p-4 text-[0.9rem] leading-relaxed">
             {`AGENTLEDGER_DEMO_MODE=false
@@ -114,9 +114,15 @@ NEXT_PUBLIC_CLERK_INVITE_ONLY=true`}
             >
               Clerk Dashboard
             </a>
-            : User &amp; authentication → restrict sign-ups / use invitations only. Invite users by
-            email; <code>/sign-up</code> shows “Invite only” when the flag is on.
+            : User &amp; authentication → restrict sign-ups / use invitations only.{" "}
+            <code>/sign-up</code> shows “Invite only” when the flag is on.
           </p>
+          <p className="mt-3 text-[var(--al-muted)]">
+            Invite users from your machine (never commit <code>CLERK_SECRET_KEY</code>):
+          </p>
+          <pre className="al-code mt-4 overflow-x-auto rounded-xl p-4 text-[0.9rem] leading-relaxed">
+            {inviteBlock}
+          </pre>
 
           <h2 id="env-fallback" className="mt-12 text-2xl font-semibold">
             4. Self-host env fallback
@@ -168,29 +174,17 @@ NEXT_PUBLIC_CLERK_INVITE_ONLY=true`}
 
           <h2 className="mt-12 text-2xl font-semibold">7. Hard budgets</h2>
           <p className="mt-3 text-[var(--al-muted)]">
-            Create a monthly project budget. When spent ≥ amount on a hard budget (Pro/Team
-            entitlements), the proxy returns HTTP <strong>402</strong>.
+            Create a monthly project budget. When spent ≥ amount on a hard budget, the proxy returns
+            HTTP <strong>402</strong>. Self-host installs unlock hard budgets without a paid plan.
           </p>
 
-          <h2 className="mt-12 text-2xl font-semibold">8. Stripe subscriptions</h2>
-          <ol className="mt-3 list-decimal space-y-2 pl-5 text-[var(--al-muted)]">
-            <li>
-              Set <code>STRIPE_SECRET_KEY</code>, <code>STRIPE_PRICE_PRO</code>,{" "}
-              <code>STRIPE_PRICE_TEAM</code>, and <code>STRIPE_WEBHOOK_SECRET</code>.
-            </li>
-            <li>
-              Webhook URL: <code>/api/stripe/webhook</code> (checkout completed + subscription
-              updated/deleted).
-            </li>
-            <li>
-              Enable Customer Portal in the Stripe Dashboard (test mode for smoke).
-            </li>
-            <li>
-              In <Link href="/app/settings/billing" className="font-medium text-[var(--al-accent)] underline">Billing</Link>
-              , upgrade with test card <code>4242 4242 4242 4242</code> — plan should update after the
-              webhook.
-            </li>
-          </ol>
+          <h2 className="mt-12 text-2xl font-semibold">8. Billing (deferred)</h2>
+          <p className="mt-3 text-[var(--al-muted)]">
+            Stripe Checkout / Customer Portal are <strong>not</strong> offered yet. Entitlements are
+            unlocked for self-host. Webhook and checkout code remain inert unless you set{" "}
+            <code>AGENTLEDGER_BILLING_ENABLED=true</code> (not recommended until monetization
+            returns).
+          </p>
 
           <h2 className="mt-12 text-2xl font-semibold">More</h2>
           <p className="mt-3 text-[var(--al-muted)]">

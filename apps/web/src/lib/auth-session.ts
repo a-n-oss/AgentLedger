@@ -2,7 +2,8 @@ import { cookies } from "next/headers";
 import { and, eq } from "drizzle-orm";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { memberships, organizations } from "@agentledger/db";
-import { getPlan, type PlanEntitlements } from "@agentledger/shared";
+import type { PlanEntitlements } from "@agentledger/shared";
+import { resolveEntitlements } from "./billing";
 import { SURFACE_COOKIE, type ConsoleSurface } from "./console";
 import { getDb, isDemoMode } from "./db";
 
@@ -45,7 +46,7 @@ async function getDemoSession(): Promise<AppSession> {
     clerkOrgId: org.clerkOrgId,
     orgName: org.name,
     role: "owner",
-    plan: getPlan(org.plan),
+    plan: resolveEntitlements(org.plan),
     email: "demo@agentledger.dev",
     surface: "demo",
   };
@@ -90,7 +91,7 @@ async function getClerkSession(): Promise<AppSession> {
       clerkOrgId: org.clerkOrgId,
       orgName: org.name,
       role: "owner",
-      plan: getPlan(org.plan),
+      plan: resolveEntitlements(org.plan),
       email,
       surface: "app",
     };
@@ -136,7 +137,7 @@ async function getClerkSession(): Promise<AppSession> {
     clerkOrgId: org.clerkOrgId,
     orgName: org.name,
     role: membership.role,
-    plan: getPlan(org.plan),
+    plan: resolveEntitlements(org.plan),
     email,
     surface: "app",
   };

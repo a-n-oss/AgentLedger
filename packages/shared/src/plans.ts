@@ -17,6 +17,10 @@ export type PlanEntitlements = {
   overageMetered: boolean;
 };
 
+/**
+ * Plan catalog for a future SaaS path. While AGENTLEDGER_BILLING_ENABLED is unset,
+ * the web app resolves Team entitlements for all orgs (see apps/web/src/lib/billing.ts).
+ */
 export const PLANS: Record<PlanId, PlanEntitlements> = {
   free: {
     id: "free",

@@ -8,6 +8,7 @@
     "db:generate": "pnpm --filter @agentledger/db generate",
     "db:migrate": "pnpm --filter @agentledger/db migrate",
     "db:seed": "pnpm --filter @agentledger/db seed",
+    "invite": "tsx scripts/invite-user.ts",
     "test": "pnpm -r test",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck"
@@ -15,5 +16,9 @@
   "engines": {
     "node": ">=20"
   },
-  "packageManager": "pnpm@9.15.0"
+  "packageManager": "pnpm@9.15.0",
+  "devDependencies": {
+    "@clerk/backend": "^2.33.6",
+    "tsx": "^4.19.3"
+  }
 }

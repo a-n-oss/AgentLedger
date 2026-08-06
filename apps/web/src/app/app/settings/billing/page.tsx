@@ -1,74 +1,53 @@
-import { PLANS } from "@agentledger/shared";
 import { requireAppSession } from "@/lib/auth-session";
-import { stripeConfigured } from "@/lib/stripe";
-import { BillingActions } from "@/components/billing-actions";
+import { isBillingEnabled } from "@/lib/billing";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default async function BillingPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ success?: string; canceled?: string; demo?: string }>;
-}) {
+export default async function BillingPage() {
   const session = await requireAppSession();
-  const params = await searchParams;
-  const plan = PLANS[session.plan.id];
-  const ready = stripeConfigured();
+  const billingOn = isBillingEnabled();
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="font-[family-name:var(--font-display)] text-3xl">Billing</h1>
-        <p className="text-sm text-[var(--al-muted)]">Stripe Checkout + Customer Portal</p>
+        <p className="text-sm text-[var(--al-muted)]">
+          {billingOn
+            ? "Stripe Checkout + Customer Portal"
+            : "SaaS subscriptions are deferred — self-host entitlements are unlocked"}
+        </p>
       </div>
-      {params.success && (
-        <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-          Checkout complete. If your plan has not updated yet, wait a few seconds for the webhook.
-        </p>
-      )}
-      {params.canceled && (
-        <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">Checkout canceled.</p>
-      )}
-      {params.demo && (
-        <p className="rounded-md bg-sky-50 px-3 py-2 text-sm text-sky-800">
-          Seeded demo cannot run live Checkout. Use a Clerk-signed-in <code>/app</code> session.
-        </p>
-      )}
       <Card>
         <CardHeader>
-          <CardTitle>Current plan: {plan.name}</CardTitle>
+          <CardTitle>
+            {billingOn ? `Current plan: ${session.plan.name}` : "Self-host entitlements"}
+          </CardTitle>
           <CardDescription>
-            {plan.eventQuota.toLocaleString()} events/mo · hard budgets:{" "}
-            {plan.hardBudgets ? "yes" : "no"} · audit export: {plan.auditExport ? "yes" : "no"}
+            {session.plan.eventQuota.toLocaleString()} events/mo · hard budgets:{" "}
+            {session.plan.hardBudgets ? "yes" : "no"} · audit export:{" "}
+            {session.plan.auditExport ? "yes" : "no"}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <BillingActions stripeReady={ready} currentPlan={plan.id} />
+        <CardContent className="space-y-3 text-sm text-[var(--al-muted)]">
+          {billingOn ? (
+            <p>
+              Billing is enabled on this instance. Configure Stripe price IDs and use Checkout from a
+              future release of the billing UI.
+            </p>
+          ) : (
+            <>
+              <p>
+                AgentLedger is self-host first. Paid SaaS plans and Stripe Checkout are not offered
+                yet. Every organization on this install receives full product entitlements (hard
+                budgets, audit export, Slack alerts, payload retention) without a subscription.
+              </p>
+              <p>
+                To re-enable SaaS billing later, set <code>AGENTLEDGER_BILLING_ENABLED=true</code>{" "}
+                and configure Stripe keys — see DEPLOY.md.
+              </p>
+            </>
+          )}
         </CardContent>
       </Card>
-      <div className="grid gap-3 md:grid-cols-3">
-        {Object.values(PLANS).map((p) => {
-          const current = p.id === plan.id;
-          return (
-            <Card
-              key={p.id}
-              className={current ? "border-[var(--al-accent)] ring-1 ring-[var(--al-accent)]" : undefined}
-            >
-              <CardHeader>
-                <CardTitle>
-                  {p.name}
-                  {current ? (
-                    <span className="ml-2 text-xs font-medium text-[var(--al-accent)]">Current</span>
-                  ) : null}
-                </CardTitle>
-                <CardDescription>${p.priceMonthlyUsd}/mo</CardDescription>
-              </CardHeader>
-              <CardContent className="text-sm text-[var(--al-muted)]">
-                {p.eventQuota.toLocaleString()} events · {p.maxProjects} projects
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
     </div>
   );
 }

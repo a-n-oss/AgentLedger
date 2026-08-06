@@ -1,6 +1,7 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { apiKeys, organizations, projects } from "@agentledger/db";
-import { getPlan, type PlanEntitlements } from "@agentledger/shared";
+import type { PlanEntitlements } from "@agentledger/shared";
+import { resolveEntitlements } from "./billing";
 import { getDb } from "./db";
 import { extractBearerToken, hashApiKey } from "./api-keys";
 
@@ -49,7 +50,7 @@ export async function authenticateApiKey(authHeader: string | null): Promise<Aut
     projectName: match.projectName,
     retainPayloads: match.retainPayloads,
     organizationId: match.organizationId,
-    plan: getPlan(match.org.plan),
+    plan: resolveEntitlements(match.org.plan),
     org: match.org,
   };
 }
