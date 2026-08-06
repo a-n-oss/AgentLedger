@@ -36,8 +36,13 @@ export default function HomePage() {
           own stack with invite-only auth and BYOK.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
-          <Link href="/docs">
+          <Link href="/sign-in">
             <Button size="lg" variant="accent">
+              Sign in
+            </Button>
+          </Link>
+          <Link href="/docs">
+            <Button size="lg" variant="secondary">
               Self-host docs
             </Button>
           </Link>
