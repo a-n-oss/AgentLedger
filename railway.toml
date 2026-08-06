@@ -1,5 +1,5 @@
-# Public docs + demo only (not a production proxy).
-# Self-host for real traffic — see DEPLOY.md.
+# Private hosted / invite-only path (demo off). See DEPLOY.md.
+# Ship via GitHub merge → Railway auto-deploy.
 
 [build]
 builder = "NIXPACKS"

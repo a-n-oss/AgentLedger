@@ -11,7 +11,7 @@ export default function SignUpPage() {
       <AuthShell title="Sign up" subtitle="Clerk keys are not configured yet.">
         <div className="space-y-4">
           <p className="text-sm text-[var(--al-muted)]">
-            Add Clerk credentials, or enable demo mode to explore the app.
+            Add Clerk credentials to enable sign-up, or see the self-host docs.
           </p>
           <Link href="/app">
             <Button variant="accent">Open app</Button>
@@ -29,7 +29,8 @@ export default function SignUpPage() {
       >
         <div className="space-y-4 text-center">
           <p className="text-sm text-[var(--al-muted)]">
-            Ask an admin to invite you from the Clerk Dashboard, then use the email link or{" "}
+            Ask an admin to invite you (<code>pnpm invite -- you@example.com</code> or Clerk
+            Dashboard), then use the email link or{" "}
             <Link href="/sign-in" className="font-medium text-[var(--al-accent)] hover:underline">
               sign in
             </Link>

@@ -4,7 +4,7 @@
 
 AgentLedger sits between your apps and LLM providers. It attributes every call to an agent/team, enforces hard spend caps, and keeps an audit ledger — without being another trace debugger (Langfuse) or router (Portkey).
 
-Run it on your own Postgres + Node host. The public Railway site is **docs + a seeded demo** only — not a production proxy. If you have **no OpenAI/Anthropic/Google keys**, you can still explore the dashboard with seed data; provider keys are only required for the live LLM **proxy** on your host.
+Run it on your own Postgres + Node host with invite-only Clerk and BYOK. SaaS subscriptions are deferred — self-host installs unlock full entitlements without Stripe. Optional seeded `/demo` is local-only when `AGENTLEDGER_DEMO_MODE=true`. Provider keys are only required for the live LLM **proxy**.
 
 ---
 
@@ -44,7 +44,7 @@ AgentLedger’s wedge:
 | Proxy | Swap OpenAI `baseURL` → AgentLedger logs cost + attribution |
 | Hard budgets | When spent ≥ cap on a hard budget → **HTTP 402** (request blocked) |
 | Run ledger | Multi-step agents record LLM + tool/MCP spans under one `runId` |
-| Audit export | CSV/JSON of events (Team plan) |
+| Audit export | CSV/JSON of events (unlocked on self-host) |
 
 ---
 
@@ -283,8 +283,8 @@ Budget {
 | Situation | Behavior |
 |---|---|
 | Soft budget crossed | Alerts fire; traffic continues |
-| Hard budget crossed **and** plan allows hard budgets (Pro/Team) | Proxy / `openRun` return **402** |
-| Free plan | Soft alerts only — no hard stop |
+| Hard budget crossed (self-host entitlements unlocked) | Proxy / `openRun` return **402** |
+| SaaS plan paywalls | Deferred — not enforced while billing is off |
 
 Spend is tracked in `budget_usages` per period window (UTC day or month).
 
@@ -311,15 +311,9 @@ flowchart LR
 
 ## Billing and plans
 
-From [`packages/shared/src/plans.ts`](packages/shared/src/plans.ts):
+SaaS Stripe Checkout is **deferred** (`AGENTLEDGER_BILLING_ENABLED` unset). Self-host / private installs resolve **Team-level entitlements** for every org so hard budgets, audit export, and related features work without a paid plan.
 
-| Plan | Price | Events/mo | Hard budgets | Audit export | Payload retain |
-|---|---|---|---|---|---|
-| Free | $0 | 10k | No | No | No |
-| Pro | $99 | 250k | Yes | No | No |
-| Team | $299 | 1M | Yes | Yes | Yes |
-
-Stripe Checkout + Customer Portal update `organizations.plan` via webhook ([`apps/web/src/app/api/stripe/webhook/route.ts`](apps/web/src/app/api/stripe/webhook/route.ts)). Without Stripe keys, billing buttons redirect to a demo notice.
+Plan definitions remain in [`packages/shared/src/plans.ts`](packages/shared/src/plans.ts) for a future monetization path. Checkout/portal server actions refuse with “billing not available”; the Stripe webhook returns early when billing is disabled.
 
 ---
 
@@ -339,27 +333,25 @@ Configure channels under **App → Alerts**.
 
 You do **not** need `OPENAI_API_KEY` to understand or demo the product UI.
 
-### What works out of the box (`/demo` + seed)
+### What works out of the box (seed + `/app` with Clerk, or optional `/demo`)
 
 | Feature | Works? | Notes |
 |---|---|---|
-| Landing, docs, legal pages | Yes | Static |
-| `/demo` overview charts | Yes | Seeded spend series |
+| Landing, docs, legal pages | Yes | Self-host messaging |
+| `/app` console | Yes | Clerk + invite-only |
+| Optional `/demo` | Local only | When `AGENTLEDGER_DEMO_MODE=true` |
 | Projects / API keys | Yes | Create, rotate, revoke |
-| Agents list | Yes | From seed + headers |
-| Runs explorer | Yes | Seed includes a completed run |
-| Budgets CRUD | Yes | Create hard/soft caps |
+| Agents / Runs / Budgets | Yes | Seed helps with sample data |
 | Alerts channels | Yes | Add Slack/email targets |
-| Audit export | Yes | Seed org is Team plan |
-| Run SDK ingest | Yes | `openRun` / `span` / `endRun` with demo API key |
-| Live LLM proxy | **No** | Returns **503** until a provider key is set |
-| Real Stripe checkout | **No** | Shows demo billing notice |
-| `/app` without Clerk | Redirects | To `/demo` when demo routes enabled |
+| Audit export | Yes | Unlocked on self-host |
+| Run SDK ingest | Yes | `openRun` / `span` / `endRun` with API key |
+| Live LLM proxy | Needs key | **503** until BYOK or env provider key |
+| Stripe checkout | Off | Billing deferred |
 
 ### Walkthrough (no provider keys)
 
 1. Start Postgres + migrate + seed (see Quick start).
-2. Open http://localhost:3000/demo — seeded KPIs and charts.
+2. Sign in at `/app` (or enable demo mode and open `/demo` locally).
 3. Open **Projects** → open the seeded project → copy install snippet (use the API key printed by `pnpm db:seed`).
 4. Open **Agents** / **Runs** / **Budgets** to see seeded entities.
 5. Optionally hit the SDK (still no provider key needed):
@@ -395,9 +387,9 @@ You’ll see a real completion, `x-al-cost-usd` response header, and a new event
 
 ## Deploy
 
-**Self-host / private hosted** with invite-only Clerk + BYOK is the production path (`/app`). The Railway deployment is **docs + `/demo`** (`AGENTLEDGER_DEMO_MODE=true`, no provider secrets). Stripe tiers are deferred while BYOK-first.
+**Self-host / private hosted** with invite-only Clerk + BYOK is the production path (`/app`). Demo mode is off by default; invite users with `pnpm invite -- email@…`. Stripe/SaaS billing is deferred.
 
-See **[DEPLOY.md](DEPLOY.md)** and `/docs` for BYOK, invite-only, and smoke checks. Configs: [`railway.toml`](railway.toml) (demo), [`apps/web/vercel.json`](apps/web/vercel.json) (optional marketing).
+See **[DEPLOY.md](DEPLOY.md)** and `/docs` for BYOK, invite-only, and smoke checks. Configs: [`railway.toml`](railway.toml), [`apps/web/vercel.json`](apps/web/vercel.json) (optional marketing).
 
 ## Quick start
 
@@ -409,9 +401,10 @@ docker compose up -d
 cp apps/web/.env.example apps/web/.env.local
 # Defaults already use:
 #   DATABASE_URL=postgres://postgres:postgres@localhost:5433/agentledger
-#   AGENTLEDGER_DEMO_MODE=true   # enables /demo
+#   AGENTLEDGER_DEMO_MODE=false
+#   NEXT_PUBLIC_CLERK_INVITE_ONLY=true
 
-# 3. Install + schema + demo data
+# 3. Install + schema + optional seed data
 pnpm install
 pnpm db:migrate
 pnpm db:seed
@@ -419,14 +412,15 @@ pnpm db:seed
 
 # 4. App
 pnpm dev
+# Invite a user: pnpm invite -- you@example.com
 ```
 
 Open:
 
 - Marketing: http://localhost:3000  
-- Demo: http://localhost:3000/demo  
 - Live app (Clerk): http://localhost:3000/app  
 - Docs: http://localhost:3000/docs  
+- Optional local demo: set `AGENTLEDGER_DEMO_MODE=true` → `/demo`
 - Health: http://localhost:3000/api/health  
 
 ---
@@ -436,17 +430,18 @@ Open:
 | Variable | Required? | Purpose |
 |---|---|---|
 | `DATABASE_URL` | Yes | Postgres connection |
-| `AGENTLEDGER_DEMO_MODE` | Recommended locally | `true` enables seeded `/demo` (not `/app`) |
+| `AGENTLEDGER_DEMO_MODE` | Optional local | `true` enables seeded `/demo`; default `false` |
 | `SEED_CLERK_ORG_ID` | Optional | Demo/seed org id (default `org_demo_agentledger`) |
-| `NEXT_PUBLIC_APP_URL` | Yes for links/Stripe | e.g. `http://localhost:3000` |
+| `NEXT_PUBLIC_APP_URL` | Yes for links | e.g. `http://localhost:3000` |
 | `AGENTLEDGER_SECRETS_KEY` | For BYOK UI | `openssl rand -base64 32` — encrypts project provider keys |
 | `OPENAI_API_KEY` | Optional fallback | Upstream OpenAI if no project BYOK |
 | `ANTHROPIC_API_KEY` | Optional fallback | Upstream Anthropic |
 | `GOOGLE_API_KEY` | Optional fallback | Upstream Google |
 | `XAI_API_KEY` | Optional fallback | Upstream xAI (Grok) if no project BYOK |
-| Clerk keys | Only if demo off | Real multi-user auth |
-| `NEXT_PUBLIC_CLERK_INVITE_ONLY` | Hosted | Hides public sign-up UI |
-| Stripe keys | For subscriptions | Checkout / portal / webhooks |
+| Clerk keys | For `/app` | Real multi-user auth |
+| `NEXT_PUBLIC_CLERK_INVITE_ONLY` | Hosted | `true` hides public sign-up UI |
+| `AGENTLEDGER_BILLING_ENABLED` | Off by default | Set `true` only to re-enable SaaS Stripe later |
+| Stripe keys | Deferred | Unused while billing is off |
 | `RESEND_API_KEY` | Optional | Email budget alerts (+ test send on `/app/alerts`) |
 | `INNGEST_*` | Optional | Async alert delivery |
 
@@ -496,18 +491,18 @@ docker-compose.yml        Local Postgres (:5433)
 
 | Route | What you’ll see |
 |---|---|
-| `/` | Product landing + pricing |
+| `/` | Product landing (self-host CTAs) |
 | `/docs` | Proxy + SDK quickstart |
-| `/demo` | Seeded explore console (when `AGENTLEDGER_DEMO_MODE=true`) |
-| `/app` | Live console (Clerk) — same UI as `/demo` |
+| `/demo` | Optional seeded console (when `AGENTLEDGER_DEMO_MODE=true`) |
+| `/app` | Live console (Clerk) |
 | `/app/projects` | Projects + create form |
 | `/app/projects/[id]` | API keys + provider keys + install snippet |
 | `/app/agents` | Spend by agent |
 | `/app/runs` | Multi-step run list |
 | `/app/budgets` | Hard/soft budget config |
 | `/app/alerts` | Slack/email channels |
-| `/app/export` | CSV/JSON audit download (Team) |
-| `/app/settings/billing` | Plan + Stripe actions |
+| `/app/export` | CSV/JSON audit download |
+| `/app/settings/billing` | Billing deferred notice |
 
 ---
 

@@ -8,16 +8,18 @@
 - Prefers custom branded sign-in/sign-up pages over default Clerk hosted UI
 - Brand mark should be monochrome SVG (`currentColor`) and always paired with the AgentLedger wordmark in nav/headers
 - Do not deploy via Railway CLI (`railway up`) unless the user explicitly overrides; rely on GitHub merge → Railway auto-deploy so CI failures are visible
+- Product posture is self-host / private deploy first; hosted SaaS monetization is deferred
 
 ## Learned Workspace Facts
 
 - This repo is AgentLedger — an AI agent ops and spend-control product (proxy, budgets, run ledger, dashboard); production path is self-host or private hosted with invite-only Clerk + BYOK
 - Monorepo layout: `apps/web` plus `packages/{db,shared,sdk}`, managed with pnpm
-- Stack centers on Next.js, Postgres (Docker Compose on port 5433 locally), Clerk for `/app`, Stripe Checkout subscriptions, and Resend alerts
+- Stack centers on Next.js, Postgres (Docker Compose on port 5433 locally), Clerk for `/app`, and Resend alerts; Stripe SaaS billing is deferred (`AGENTLEDGER_BILLING_ENABLED` unset → full self-host entitlements)
 - OpenAI-compatible proxy lives at `/api/v1` with agent/team attribution, cost logging, and hard budgets that return HTTP 402 when exceeded
 - Provider keys are per-project BYOK for `openai` | `anthropic` | `google` | `xai` (AES-GCM via `AGENTLEDGER_SECRETS_KEY`); Grok models auto-route to xAI; optional env fallbacks include `OPENAI_API_KEY` and `XAI_API_KEY`
-- `AGENTLEDGER_DEMO_MODE=true` enables seeded `/demo` only; `/app` is always the live Clerk console
-- Local explore: `pnpm db:migrate` + `pnpm db:seed`, open `/demo` without provider keys
-- Railway hosts the invite-only BYOK app for smoke testing with demo mode off; `/demo` is only when demo mode is on — see `DEPLOY.md`
+- `AGENTLEDGER_DEMO_MODE` defaults off; `true` enables optional seeded `/demo` for local explore only; `/app` is the live Clerk console
+- Invite users with `pnpm invite -- email@…` (`scripts/invite-user.ts`, requires `CLERK_SECRET_KEY`)
+- Local explore: `pnpm db:migrate` + `pnpm db:seed`, then `/app` with Clerk (or `/demo` if demo mode on)
+- Railway hosts the invite-only BYOK app for smoke testing with demo mode off — see `DEPLOY.md`
 - GitHub remote is `a-n-oss/AgentLedger` with GitHub Actions CI for install, typecheck, test, build, migrate, seed, and lint
 - Custom Clerk auth lives at `/sign-in` and `/sign-up`; `NEXT_PUBLIC_CLERK_INVITE_ONLY=true` gates sign-up UI

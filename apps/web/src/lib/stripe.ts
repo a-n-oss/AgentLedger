@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import type { PlanId } from "@agentledger/shared";
+import { isBillingEnabled } from "./billing";
 
 let stripe: Stripe | null = null;
 
@@ -13,7 +14,9 @@ export function getStripe() {
   return stripe;
 }
 
+/** True only when SaaS billing is enabled and Stripe price IDs are configured. */
 export function stripeConfigured() {
+  if (!isBillingEnabled()) return false;
   return Boolean(
     process.env.STRIPE_SECRET_KEY &&
       process.env.STRIPE_PRICE_PRO &&

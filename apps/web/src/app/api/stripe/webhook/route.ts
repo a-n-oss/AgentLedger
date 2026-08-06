@@ -1,12 +1,17 @@
 import { eq } from "drizzle-orm";
 import { organizations, stripeEvents } from "@agentledger/db";
 import { PLANS, type PlanId } from "@agentledger/shared";
+import { isBillingEnabled } from "@/lib/billing";
 import { getDb } from "@/lib/db";
 import { getStripe, planFromStripePrice } from "@/lib/stripe";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  if (!isBillingEnabled()) {
+    return Response.json({ received: true, billingDisabled: true });
+  }
+
   if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
     return Response.json({ error: "Missing webhook config" }, { status: 400 });
   }

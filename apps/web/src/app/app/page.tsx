@@ -13,7 +13,7 @@ export default async function AppOverviewPage() {
       <div>
         <h1 className="font-[family-name:var(--font-display)] text-3xl">Overview</h1>
         <p className="text-sm text-[var(--al-muted)]">
-          {session.orgName} · {session.plan.name} plan
+          {session.orgName} · {session.plan.name} entitlements
         </p>
       </div>
 

@@ -3,6 +3,8 @@ import { BrandLockup, BrandMark } from "@/components/brand/logo";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 
+const GITHUB_URL = "https://github.com/a-n-oss/AgentLedger";
+
 export default function HomePage() {
   return (
     <div className="min-h-screen text-[var(--al-ink)]">
@@ -31,19 +33,19 @@ export default function HomePage() {
         </h1>
         <p className="mt-5 max-w-xl text-lg text-[var(--al-muted)]">
           Hard budgets, chargeback, and an audit ledger for production AI agents — run it on your
-          own stack. This site is docs and a seeded demo, not your production proxy.
+          own stack with invite-only auth and BYOK.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link href="/docs">
             <Button size="lg" variant="accent">
-              Self-host
+              Self-host docs
             </Button>
           </Link>
-          <Link href="/demo">
+          <a href={GITHUB_URL} target="_blank" rel="noreferrer">
             <Button size="lg" variant="secondary">
-              Try demo
+              View on GitHub
             </Button>
-          </Link>
+          </a>
         </div>
         <pre className="al-code mt-12 max-w-2xl overflow-x-auto rounded-2xl p-5 text-sm shadow-[var(--al-shadow)]">
 {`const client = new OpenAI({
@@ -79,36 +81,25 @@ export default function HomePage() {
         ))}
       </section>
 
-      <section id="pricing" className="mx-auto max-w-6xl px-6 pb-24">
+      <section id="deploy" className="mx-auto max-w-6xl px-6 pb-24">
         <h2 className="font-[family-name:var(--font-display)] text-3xl font-semibold">
-          Plans when you self-host
+          Private deploy, not a SaaS paywall
         </h2>
-        <p className="mt-2 text-[var(--al-muted)]">
-          Entitlement tiers for your own install. This public site is a demo — point production
-          traffic at your host.
+        <p className="mt-2 max-w-2xl text-[var(--al-muted)]">
+          Clone the repo, run Postgres + migrate, wire invite-only Clerk and BYOK. SaaS
+          subscriptions are deferred — self-host installs unlock full entitlements without Stripe.
         </p>
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
-          {[
-            { name: "Free", price: "$0", detail: "10k events · 1 project · soft alerts" },
-            { name: "Pro", price: "$99", detail: "250k events · hard budgets · Slack alerts", featured: true },
-            { name: "Team", price: "$299", detail: "1M events · audit export · payload retention" },
-          ].map((plan) => (
-            <div
-              key={plan.name}
-              className={`rounded-2xl border p-6 ${
-                plan.featured
-                  ? "border-[var(--al-accent)] bg-[var(--al-accent-soft)] shadow-[var(--al-shadow)]"
-                  : "border-[var(--al-line)] bg-[var(--al-panel)]"
-              }`}
-            >
-              <div className="text-sm uppercase tracking-wide text-[var(--al-muted)]">{plan.name}</div>
-              <div className="mt-2 font-[family-name:var(--font-display)] text-4xl font-semibold">
-                {plan.price}
-                <span className="text-base font-normal text-[var(--al-muted)]">/mo</span>
-              </div>
-              <p className="mt-3 text-sm text-[var(--al-muted)]">{plan.detail}</p>
-            </div>
-          ))}
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link href="/docs">
+            <Button variant="accent">Read the docs</Button>
+          </Link>
+          <a
+            href="https://github.com/a-n-oss/AgentLedger/blob/main/DEPLOY.md"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <Button variant="secondary">DEPLOY.md</Button>
+          </a>
         </div>
       </section>
 

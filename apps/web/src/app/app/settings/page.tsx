@@ -16,10 +16,10 @@ export default async function SettingsPage() {
         <CardContent className="space-y-2 text-sm">
           <div>Name: {session.orgName}</div>
           <div>Role: {session.role}</div>
-          <div>Plan: {session.plan.name}</div>
+          <div>Entitlements: {session.plan.name} (self-host unlocked)</div>
           <div>Surface: {demo ? "Seeded demo (/demo)" : "Live app (/app)"}</div>
           <div className="text-[var(--al-muted)]">
-            Privacy default: metadata + tokens only. Enable payload retention per project on Team.
+            Privacy default: metadata + tokens only. Enable payload retention per project when needed.
           </div>
         </CardContent>
       </Card>

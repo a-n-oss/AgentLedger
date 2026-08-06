@@ -29,6 +29,7 @@ import {
   listProviderSecretHints,
   secretsKeyConfigured,
 } from "@/lib/secrets";
+import { BILLING_UNAVAILABLE_MESSAGE, isBillingEnabled } from "@/lib/billing";
 import { appUrl, getStripe, stripeConfigured } from "@/lib/stripe";
 
 export async function createProjectAction(formData: FormData) {
@@ -273,6 +274,10 @@ export async function deleteProviderSecretAction(projectId: string, provider: st
 }
 
 export async function createCheckoutSessionAction(plan: "pro" | "team") {
+  if (!isBillingEnabled()) {
+    throw new Error(BILLING_UNAVAILABLE_MESSAGE);
+  }
+
   const session = await requireAppSession();
   const billingBase = session.surface === "demo" ? "/demo" : "/app";
 
@@ -341,6 +346,10 @@ export async function createCheckoutSessionAction(plan: "pro" | "team") {
 }
 
 export async function createPortalSessionAction() {
+  if (!isBillingEnabled()) {
+    throw new Error(BILLING_UNAVAILABLE_MESSAGE);
+  }
+
   const session = await requireAppSession();
   const billingBase = session.surface === "demo" ? "/demo" : "/app";
 

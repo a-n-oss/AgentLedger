@@ -30,9 +30,14 @@ export function SiteHeader({
           <Link href="/docs" className="text-[var(--al-muted)] hover:text-[var(--al-ink)]">
             Docs
           </Link>
-          <Link href="/demo" className="text-[var(--al-muted)] hover:text-[var(--al-ink)]">
-            Demo
-          </Link>
+          <a
+            href="https://github.com/a-n-oss/AgentLedger"
+            target="_blank"
+            rel="noreferrer"
+            className="text-[var(--al-muted)] hover:text-[var(--al-ink)]"
+          >
+            GitHub
+          </a>
           <ThemeToggle />
           {variant === "marketing" ? (
             <Link href="/docs">

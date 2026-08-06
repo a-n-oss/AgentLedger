@@ -1,6 +1,6 @@
 import { and, eq, sql } from "drizzle-orm";
 import { agents, budgetUsages, budgets, events, organizations } from "@agentledger/db";
-import { getPlan } from "@agentledger/shared";
+import { resolveEntitlements } from "./billing";
 import { getDb } from "./db";
 import { dispatchBudgetAlerts } from "./alerts";
 
@@ -32,7 +32,7 @@ export async function checkBudgets(params: {
   planId: string;
 }): Promise<BudgetCheckResult> {
   const db = getDb();
-  const plan = getPlan(params.planId);
+  const plan = resolveEntitlements(params.planId);
   const projectBudgets = await db.query.budgets.findMany({
     where: eq(budgets.projectId, params.projectId),
   });

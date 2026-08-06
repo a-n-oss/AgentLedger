@@ -8,12 +8,12 @@ export default async function ExportPage() {
       <div>
         <h1 className="font-[family-name:var(--font-display)] text-3xl">Audit export</h1>
         <p className="text-sm text-[var(--al-muted)]">
-          Team plan feature · current plan: {session.plan.name}
+          CSV/JSON ledger export · entitlements: {session.plan.name}
         </p>
       </div>
       {!session.plan.auditExport ? (
         <p className="rounded-xl border border-[var(--al-line)] bg-[var(--al-panel)] p-4 text-sm text-[var(--al-muted)]">
-          Upgrade to Team to export CSV/JSON ledgers for compliance reviews.
+          Audit export is not enabled for this organization&apos;s entitlements.
         </p>
       ) : (
         <ExportForm />
