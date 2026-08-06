@@ -13,6 +13,7 @@
 ## Learned Workspace Facts
 
 - This repo is AgentLedger — an AI agent ops and spend-control product (proxy, budgets, run ledger, dashboard); production path is self-host or private hosted with invite-only Clerk + BYOK
+- Open source under MIT (`LICENSE`); `package.json` has `"license": "MIT"`; self-host stays free; hosted monetization is optional via `AGENTLEDGER_BILLING_ENABLED`
 - Monorepo layout: `apps/web` plus `packages/{db,shared,sdk}`, managed with pnpm
 - Stack centers on Next.js, Postgres (Docker Compose on port 5433 locally), Clerk for `/app`, and Resend alerts; Stripe SaaS billing is deferred (`AGENTLEDGER_BILLING_ENABLED` unset → full self-host entitlements)
 - OpenAI-compatible proxy lives at `/api/v1` with agent/team attribution, cost logging, and hard budgets that return HTTP 402 when exceeded
@@ -20,6 +21,7 @@
 - `AGENTLEDGER_DEMO_MODE` defaults off; `true` enables optional seeded `/demo` for local explore only; `/app` is the live Clerk console
 - Invite users with `pnpm invite -- email@…` (`scripts/invite-user.ts`, requires `CLERK_SECRET_KEY`)
 - Local explore: `pnpm db:migrate` + `pnpm db:seed`, then `/app` with Clerk (or `/demo` if demo mode on)
-- Railway hosts the invite-only BYOK app for smoke testing with demo mode off — see `DEPLOY.md`
+- Railway hosts the invite-only BYOK app for smoke testing with demo mode off — public app service, private Postgres; no `railway up` unless overridden; leave billing flag unset — see `DEPLOY.md`
+- Budget alert emails use static PNG at `apps/web/public/brand/email-logo.png`
 - GitHub remote is `a-n-oss/AgentLedger` with GitHub Actions CI for install, typecheck, test, build, migrate, seed, and lint
 - Custom Clerk auth lives at `/sign-in` and `/sign-up`; `NEXT_PUBLIC_CLERK_INVITE_ONLY=true` gates sign-up UI

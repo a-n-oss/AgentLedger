@@ -106,7 +106,7 @@ export default function HomePage() {
       <footer className="border-t border-[var(--al-line)] px-6 py-8 text-sm text-[var(--al-muted)]">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-4">
           <BrandLockup markSize={20} className="text-sm text-[var(--al-muted)]" />
-          <span>© {new Date().getFullYear()}</span>
+          <span>© {new Date().getFullYear()} · MIT</span>
           <Link href="/privacy" className="hover:text-[var(--al-ink)]">
             Privacy
           </Link>

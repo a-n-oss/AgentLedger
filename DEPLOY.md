@@ -76,11 +76,20 @@ pnpm invite -- alice@acme.com bob@acme.com
 
 The script uses the Clerk Backend API (`invitations.createInvitation`), prints invitation id/status (and invite URL when Clerk returns one), and emails the recipient. Sign-in stays at `/sign-in`.
 
-### Billing (deferred)
+### Billing (deferred — reactivation path)
 
 Stripe Checkout / Customer Portal / plan paywalls are **off** by default. Self-host orgs receive full Team-level entitlements (hard budgets, audit export, Slack alerts, payload retention) without a subscription.
 
-Webhook at `/api/stripe/webhook` returns early when billing is disabled. To re-enable later (not recommended yet): set `AGENTLEDGER_BILLING_ENABLED=true` plus Stripe keys — see git history / Stripe sandbox notes in `scripts/stripe-sandbox.md` if present.
+Webhook at `/api/stripe/webhook` returns early when billing is disabled (`apps/web/src/lib/billing.ts`).
+
+**Do not** set `AGENTLEDGER_BILLING_ENABLED=true` on the current Railway smoke host. When you are ready to monetize a **paid hosted** product:
+
+1. Configure Stripe products/prices — see [`scripts/stripe-sandbox.md`](scripts/stripe-sandbox.md).
+2. On that host only: `AGENTLEDGER_BILLING_ENABLED=true` plus `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_PRO`, `STRIPE_PRICE_TEAM` (and publishable/metered keys as needed).
+3. Register webhook events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`.
+4. Redeploy. Orgs then follow Stripe-synced plans instead of unlocked Team entitlements.
+
+Self-host installs can leave billing unset forever.
 
 ### 3. Install and run
 ```bash
@@ -114,17 +123,25 @@ See `/docs` for BYOK, invite-only, and alert details.
 
 Configs in [`railway.toml`](railway.toml). Ship via **GitHub merge → Railway auto-deploy** (do not `railway up` unless you explicitly need a CLI override).
 
+**Networking posture:**
+
+| Service | Exposure |
+|---|---|
+| AgentLedger (Next.js) | **Public** HTTP (custom domain / Railway URL) |
+| Postgres | **Private** network only — app connects via internal `DATABASE_URL`; do not publish Postgres to the internet |
+
 Recommended env on the app service:
 
 ```bash
-DATABASE_URL=<Railway Postgres>
+DATABASE_URL=<Railway Postgres private URL>
 NEXT_PUBLIC_APP_URL=https://<your-domain>
 AGENTLEDGER_DEMO_MODE=false
 NEXT_PUBLIC_CLERK_INVITE_ONLY=true
 # + Clerk, AGENTLEDGER_SECRETS_KEY, Resend as needed
+# Leave AGENTLEDGER_BILLING_ENABLED unset (billing deferred)
 ```
 
-Keep provider secrets out of a public marketing-only host. Prefer BYOK on private installs.
+Keep provider secrets out of a public marketing-only host. Prefer BYOK on private installs. Email alerts load `/brand/email-logo.png` from `NEXT_PUBLIC_APP_URL` — ensure the public app can serve that static file.
 
 ---
 
@@ -144,5 +161,6 @@ Config: [`apps/web/vercel.json`](apps/web/vercel.json). Keep the LLM proxy on a 
 | Invite users | — | `pnpm invite -- email@…` |
 | `AGENTLEDGER_SECRETS_KEY` | For BYOK UI | Required for BYOK |
 | Provider key | BYOK or env | BYOK preferred |
-| `AGENTLEDGER_BILLING_ENABLED` | unset | unset (billing deferred) |
-| Resend | Optional | For email alerts |
+| `AGENTLEDGER_BILLING_ENABLED` | unset | unset (billing deferred — do not enable on smoke) |
+| Resend | Optional | For email alerts (static PNG logo) |
+| Postgres | Local Docker `:5433` | Private Railway plugin |
