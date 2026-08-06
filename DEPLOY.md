@@ -143,6 +143,69 @@ NEXT_PUBLIC_CLERK_INVITE_ONLY=true
 
 Keep provider secrets out of a public marketing-only host. Prefer BYOK on private installs. Email alerts load `/brand/email-logo.png` from `NEXT_PUBLIC_APP_URL` — ensure the public app can serve that static file.
 
+### Clerk Production (custom domain)
+
+Use the **Production** Clerk instance (`pk_live_` / `sk_live_`) on the public host — Development (`pk_test_` / whole-whale) is for local only. Users and invitations do **not** carry over between instances.
+
+**CLI (preferred):**
+
+```bash
+clerk auth login
+clerk apps list --json
+clerk link --app <app_id>          # AgentLedger
+# Create + configure production when none exists (interactive):
+clerk deploy                       # domain, DNS handoff, OAuth prompts
+# Or agent/API path already used for this host: Platform API create instance + domain patch
+clerk env pull --instance prod     # writes pk_live_/sk_live_ (do not commit)
+clerk deploy status                # DNS / SSL / mail / Google OAuth readiness
+clerk config patch --instance prod --json '{"auth_access_control":{"sign_up_mode":"restricted"}}'
+```
+
+Set Railway (or host) vars to the production keys — merge/auto-deploy or let a variable change redeploy; do **not** `railway up` unless you explicitly override:
+
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` → `pk_live_…`
+- `CLERK_SECRET_KEY` → `sk_live_…`
+- Keep `NEXT_PUBLIC_APP_URL`, path URLs (`/sign-in`, `/sign-up`, after-sign-in/up → `/app`), `NEXT_PUBLIC_CLERK_INVITE_ONLY=true`, `AGENTLEDGER_DEMO_MODE=false`
+- Leave `AGENTLEDGER_BILLING_ENABLED` unset
+
+**DNS CNAMEs** (at your DNS host for `agentledger.koramaple.ca` — required before Clerk FAPI/SSO/invite links work):
+
+| Host | Target |
+|---|---|
+| `clerk.agentledger.koramaple.ca` | `frontend-api.clerk.services` |
+| `accounts.agentledger.koramaple.ca` | `accounts.clerk.services` |
+| `clkmail.agentledger.koramaple.ca` | `mail.<id>.clerk.services` (from Dashboard / `clerk deploy status`) |
+| `clk._domainkey.agentledger.koramaple.ca` | `dkim1.<id>.clerk.services` |
+| `clk2._domainkey.agentledger.koramaple.ca` | `dkim2.<id>.clerk.services` |
+
+App apex `agentledger.koramaple.ca` stays pointed at Railway. After DNS propagates: `clerk deploy status` or Dashboard → Domains until DNS/SSL/mail verify.
+
+**Allowed redirects** on the production instance (already typical for this app):  
+`https://<domain>/sign-in`, `/sign-up`, `/sso-callback`, `/app`, and the site origin.
+
+**Google OAuth (production requires your own credentials — Clerk shared OAuth is Dev-only):**
+
+1. [Google Cloud Console](https://console.cloud.google.com/apis/credentials) → create OAuth client (Web application).
+2. Authorized JavaScript origins: `https://agentledger.koramaple.ca`, `https://clerk.agentledger.koramaple.ca`
+3. Authorized redirect URI: `https://clerk.agentledger.koramaple.ca/v1/oauth_callback`
+4. Paste Client ID + Secret into Clerk Dashboard → SSO → Google, **or**:
+   ```bash
+   clerk config patch --instance prod --json \
+     '{"connection_oauth_google":{"enabled":true,"client_id":"…","client_secret":"…"}}'
+   ```
+5. Until Google is configured, sign in with **email code** at `/sign-in` (invite or create the user on the **production** instance).
+
+**First admin on production:**
+
+```bash
+# With production CLERK_SECRET_KEY in apps/web/.env.local (never commit)
+pnpm invite -- you@example.com
+```
+
+Or create/invite via Clerk Dashboard / Backend API. Dev users are not production users.
+
+**Sign-in after settle:** open `https://agentledger.koramaple.ca/sign-in` → email code (or Google once OAuth is wired) → land on `/app`. Orgs use Clerk `force_organization_selection` + automatic personal org creation (same posture as Development).
+
 ---
 
 ## C) Vercel (optional marketing only)
