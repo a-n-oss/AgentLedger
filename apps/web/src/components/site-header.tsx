@@ -40,14 +40,14 @@ export function SiteHeader({
           </a>
           <ThemeToggle />
           {variant === "marketing" ? (
-            <Link href="/docs">
+            <Link href="/sign-in">
               <Button size="sm" variant="accent">
-                Self-host
+                Sign in
               </Button>
             </Link>
           ) : (
-            <Link href="/docs" className="font-medium text-[var(--al-accent)] hover:underline">
-              Self-host
+            <Link href="/sign-in" className="font-medium text-[var(--al-accent)] hover:underline">
+              Sign in
             </Link>
           )}
         </nav>
