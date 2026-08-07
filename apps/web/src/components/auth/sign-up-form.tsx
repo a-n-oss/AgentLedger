@@ -9,6 +9,7 @@ import { BrandMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { clerkErrorMessage } from "@/lib/clerk-errors";
+import { isClerkGoogleOAuthEnabled } from "@/lib/clerk-google-oauth";
 
 type Step = "register" | "verify";
 
@@ -21,6 +22,7 @@ export function SignUpForm() {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const googleOAuthEnabled = isClerkGoogleOAuthEnabled();
 
   async function register(e: FormEvent) {
     e.preventDefault();
@@ -90,22 +92,26 @@ export function SignUpForm() {
         <BrandMark size={72} />
       </div>
 
-      <Button
-        type="button"
-        variant="secondary"
-        className="w-full"
-        disabled={pending}
-        onClick={() => void signUpWithGoogle()}
-      >
-        <GoogleIcon />
-        Continue with Google
-      </Button>
+      {googleOAuthEnabled ? (
+        <>
+          <Button
+            type="button"
+            variant="secondary"
+            className="w-full"
+            disabled={pending}
+            onClick={() => void signUpWithGoogle()}
+          >
+            <GoogleIcon />
+            Continue with Google
+          </Button>
 
-      <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-[var(--al-muted)]">
-        <div className="h-px flex-1 bg-[var(--al-line)]" />
-        or
-        <div className="h-px flex-1 bg-[var(--al-line)]" />
-      </div>
+          <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-[var(--al-muted)]">
+            <div className="h-px flex-1 bg-[var(--al-line)]" />
+            or
+            <div className="h-px flex-1 bg-[var(--al-line)]" />
+          </div>
+        </>
+      ) : null}
 
       {step === "register" ? (
         <form className="space-y-4" onSubmit={(e) => void register(e)}>

@@ -18,10 +18,9 @@
 - Stack centers on Next.js, Postgres (Docker Compose on port 5433 locally), Clerk for `/app`, and Resend alerts; Stripe SaaS billing is deferred (`AGENTLEDGER_BILLING_ENABLED` unset → full self-host entitlements)
 - OpenAI-compatible proxy lives at `/api/v1` with agent/team attribution, cost logging, and hard budgets that return HTTP 402 when exceeded
 - Provider keys are per-project BYOK for `openai` | `anthropic` | `google` | `xai` (AES-GCM via `AGENTLEDGER_SECRETS_KEY`); Grok models auto-route to xAI; optional env fallbacks include `OPENAI_API_KEY` and `XAI_API_KEY`
-- `AGENTLEDGER_DEMO_MODE` defaults off; `true` enables optional seeded `/demo` for local explore only; `/app` is the live Clerk console
+- `AGENTLEDGER_DEMO_MODE` defaults off; `true` enables optional seeded `/demo` for local explore only; `/app` is the live Clerk console; local explore: `pnpm db:migrate` + `pnpm db:seed`
 - Invite users with `pnpm invite -- email@…` (`scripts/invite-user.ts`, requires `CLERK_SECRET_KEY`)
-- Local explore: `pnpm db:migrate` + `pnpm db:seed`, then `/app` with Clerk (or `/demo` if demo mode on)
+- Production app domain is `agentledger.koramaple.ca` (Clerk Production + Railway); Cloudflare zone `koramaple.ca` manages DNS, including Clerk Frontend API / accounts / DKIM CNAMEs (DNS-only)
+- Clerk Production requires custom Google OAuth client credentials; Development shared Google OAuth does not work on Production; gate the UI with `NEXT_PUBLIC_CLERK_GOOGLE_OAUTH=true` only after credentials are configured
 - Railway hosts the invite-only BYOK app for smoke testing with demo mode off — public app service, private Postgres; no `railway up` unless overridden; leave billing flag unset — see `DEPLOY.md`
-- Budget alert emails use static PNG at `apps/web/public/brand/email-logo.png`
-- GitHub remote is `a-n-oss/AgentLedger` with GitHub Actions CI for install, typecheck, test, build, migrate, seed, and lint
-- Custom Clerk auth lives at `/sign-in` and `/sign-up`; `NEXT_PUBLIC_CLERK_INVITE_ONLY=true` gates sign-up UI
+- Custom Clerk auth lives at `/sign-in` and `/sign-up`; `NEXT_PUBLIC_CLERK_INVITE_ONLY=true` gates sign-up UI; GitHub remote is `a-n-oss/AgentLedger` with Actions CI; budget alert emails use `apps/web/public/brand/email-logo.png`

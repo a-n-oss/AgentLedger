@@ -166,6 +166,7 @@ Set Railway (or host) vars to the production keys — merge/auto-deploy or let a
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` → `pk_live_…`
 - `CLERK_SECRET_KEY` → `sk_live_…`
 - Keep `NEXT_PUBLIC_APP_URL`, path URLs (`/sign-in`, `/sign-up`, after-sign-in/up → `/app`), `NEXT_PUBLIC_CLERK_INVITE_ONLY=true`, `AGENTLEDGER_DEMO_MODE=false`
+- Leave `NEXT_PUBLIC_CLERK_GOOGLE_OAUTH` unset until Google OAuth credentials are configured (see below)
 - Leave `AGENTLEDGER_BILLING_ENABLED` unset
 
 **DNS CNAMEs** (at your DNS host for `agentledger.koramaple.ca` — required before Clerk FAPI/SSO/invite links work):
@@ -185,6 +186,8 @@ App apex `agentledger.koramaple.ca` stays pointed at Railway. After DNS propagat
 
 **Google OAuth (production requires your own credentials — Clerk shared OAuth is Dev-only):**
 
+Until Google is wired, keep `NEXT_PUBLIC_CLERK_GOOGLE_OAUTH` unset/false (default). The custom sign-in/sign-up forms hide "Continue with Google" so email OTP still works without the `oauth_google` strategy error.
+
 1. [Google Cloud Console](https://console.cloud.google.com/apis/credentials) → create OAuth client (Web application).
 2. Authorized JavaScript origins: `https://agentledger.koramaple.ca`, `https://clerk.agentledger.koramaple.ca`
 3. Authorized redirect URI: `https://clerk.agentledger.koramaple.ca/v1/oauth_callback`
@@ -193,7 +196,9 @@ App apex `agentledger.koramaple.ca` stays pointed at Railway. After DNS propagat
    clerk config patch --instance prod --json \
      '{"connection_oauth_google":{"enabled":true,"client_id":"…","client_secret":"…"}}'
    ```
-5. Until Google is configured, sign in with **email code** at `/sign-in` (invite or create the user on the **production** instance).
+5. Confirm `clerk deploy status` shows Google OAuth complete (not pending).
+6. Set Railway (or `.env.local`) `NEXT_PUBLIC_CLERK_GOOGLE_OAUTH=true` and redeploy so the Google button appears.
+7. Until then, sign in with **email code** at `/sign-in` (invite or create the user on the **production** instance).
 
 **First admin on production:**
 
@@ -221,6 +226,7 @@ Config: [`apps/web/vercel.json`](apps/web/vercel.json). Keep the LLM proxy on a 
 | `AGENTLEDGER_DEMO_MODE` | `true` → `/demo` | `false` (default product path) |
 | Live console | `/app` needs Clerk | `/app` + invite-only |
 | `NEXT_PUBLIC_CLERK_INVITE_ONLY` | — | `true` |
+| `NEXT_PUBLIC_CLERK_GOOGLE_OAUTH` | `true` if Dev shared Google enabled | unset until prod Google client is configured |
 | Invite users | — | `pnpm invite -- email@…` |
 | `AGENTLEDGER_SECRETS_KEY` | For BYOK UI | Required for BYOK |
 | Provider key | BYOK or env | BYOK preferred |
