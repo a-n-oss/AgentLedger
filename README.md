@@ -467,6 +467,7 @@ Open:
 | `XAI_API_KEY` | Optional fallback | Upstream xAI (Grok) if no project BYOK |
 | Clerk keys | For `/app` | Real multi-user auth |
 | `NEXT_PUBLIC_CLERK_INVITE_ONLY` | Hosted | `true` hides public sign-up UI |
+| `NEXT_PUBLIC_CLERK_GOOGLE_OAUTH` | Optional | `true` shows Google button after Clerk Google OAuth is configured (prod needs custom client) |
 | `AGENTLEDGER_BILLING_ENABLED` | Off by default | Set `true` only to re-enable SaaS Stripe later |
 | Stripe keys | Deferred | Unused while billing is off |
 | `RESEND_API_KEY` | Optional | Email budget alerts (+ test send on `/app/alerts`) |
