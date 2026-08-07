@@ -1,20 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useSignIn } from "@clerk/nextjs";
 import { useState, type FormEvent } from "react";
 import { GoogleIcon } from "@/components/auth/google-icon";
 import { BrandMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
+import { navigateAfterAuth } from "@/lib/auth-navigation";
 import { clerkErrorMessage } from "@/lib/clerk-errors";
 import { isClerkGoogleOAuthEnabled } from "@/lib/clerk-google-oauth";
 
 type Step = "email" | "code";
 
 export function SignInForm() {
-  const router = useRouter();
   const { isLoaded, signIn, setActive } = useSignIn();
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
@@ -60,7 +59,8 @@ export function SignInForm() {
       });
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
-        router.push("/app");
+        // Hard nav so middleware sees the new session cookie (and any pending org task).
+        navigateAfterAuth("/app");
         return;
       }
       setError("Additional verification is required. Try again or contact support.");
