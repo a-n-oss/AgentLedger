@@ -1,20 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useSignUp } from "@clerk/nextjs";
 import { useState, type FormEvent } from "react";
 import { GoogleIcon } from "@/components/auth/google-icon";
 import { BrandMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
+import { navigateAfterAuth } from "@/lib/auth-navigation";
 import { clerkErrorMessage } from "@/lib/clerk-errors";
 import { isClerkGoogleOAuthEnabled } from "@/lib/clerk-google-oauth";
 
 type Step = "register" | "verify";
 
 export function SignUpForm() {
-  const router = useRouter();
   const { isLoaded, signUp, setActive } = useSignUp();
   const [step, setStep] = useState<Step>("register");
   const [email, setEmail] = useState("");
@@ -55,7 +54,7 @@ export function SignUpForm() {
       });
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
-        router.push("/app");
+        navigateAfterAuth("/app");
         return;
       }
       setError("Additional verification is required. Try again or contact support.");

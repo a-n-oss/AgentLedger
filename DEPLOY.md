@@ -209,7 +209,7 @@ pnpm invite -- you@example.com
 
 Or create/invite via Clerk Dashboard / Backend API. Dev users are not production users.
 
-**Sign-in after settle:** open `https://agentledger.koramaple.ca/sign-in` → email code (or Google once OAuth is wired) → land on `/app`. Orgs use Clerk `force_organization_selection` + automatic personal org creation (same posture as Development).
+**Sign-in after settle:** open `https://agentledger.koramaple.ca/sign-in` → email code (or Google once OAuth is wired) → if Clerk `force_organization_selection` is on, complete **Choose organization** at `/session-tasks/choose-organization` (auto-created personal org is fine) → land on `/app`. Custom email OTP does not embed Clerk’s `<SignIn />` task UI, so `ClerkProvider` `taskUrls` must point at that page.
 
 ---
 
